@@ -200,9 +200,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">1.1 Overview</a></li>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">1.1 Overview</a>
+  <ul class="collapse">
+  <li><a href="#the-data" id="toc-the-data" class="nav-link" data-scroll-target="#the-data">1.1.1 The Data</a></li>
+  <li><a href="#the-task" id="toc-the-task" class="nav-link" data-scroll-target="#the-task"><strong>1.1.2 The Task</strong></a></li>
+  <li><a href="#thematic-mapping" id="toc-thematic-mapping" class="nav-link" data-scroll-target="#thematic-mapping"><strong>1.1.3 Thematic Mapping</strong></a></li>
+  <li><a href="#analytical-mapping" id="toc-analytical-mapping" class="nav-link" data-scroll-target="#analytical-mapping"><strong>1.1.4 Analytical Mapping</strong></a></li>
+  <li><a href="#grading-criteria" id="toc-grading-criteria" class="nav-link" data-scroll-target="#grading-criteria"><strong>1.1.5 Grading Criteria</strong></a></li>
+  </ul></li>
   <li><a href="#getting-started" id="toc-getting-started" class="nav-link" data-scroll-target="#getting-started">1.2 Getting Started</a></li>
-  <li><a href="#importing-geospatial-data" id="toc-importing-geospatial-data" class="nav-link" data-scroll-target="#importing-geospatial-data">1.3 Importing Geospatial Data</a>
+  <li><a href="#downloading-and-importing-geospatial-data" id="toc-downloading-and-importing-geospatial-data" class="nav-link" data-scroll-target="#downloading-and-importing-geospatial-data">1.3 Downloading and Importing Geospatial Data</a>
   <ul class="collapse">
   <li><a href="#importing-water-point-geospatial-data" id="toc-importing-water-point-geospatial-data" class="nav-link" data-scroll-target="#importing-water-point-geospatial-data">1.3.1 Importing water point geospatial data</a></li>
   <li><a href="#importing-nigeria-lga-boundary-data" id="toc-importing-nigeria-lga-boundary-data" class="nav-link" data-scroll-target="#importing-nigeria-lga-boundary-data">1.3.2 Importing Nigeria LGA boundary data</a></li>
@@ -224,7 +231,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   </ul></li>
   <li><a href="#proportion-of-functional-and-non-functional-water-point-at-lga-level." id="toc-proportion-of-functional-and-non-functional-water-point-at-lga-level." class="nav-link" data-scroll-target="#proportion-of-functional-and-non-functional-water-point-at-lga-level.">2 Proportion of functional and non-functional water point at LGA level.</a></li>
   <li><a href="#visualizing-the-spatial-distribution-of-water-points" id="toc-visualizing-the-spatial-distribution-of-water-points" class="nav-link" data-scroll-target="#visualizing-the-spatial-distribution-of-water-points">3 Visualizing the spatial distribution of water points</a></li>
-  <li><a href="#thematic-mapping" id="toc-thematic-mapping" class="nav-link" data-scroll-target="#thematic-mapping">3.1 Thematic Mapping</a></li>
+  <li><a href="#thematic-mapping-1" id="toc-thematic-mapping-1" class="nav-link" data-scroll-target="#thematic-mapping-1">3.1 Thematic Mapping</a></li>
   <li><a href="#global-spatial-autocorrelation" id="toc-global-spatial-autocorrelation" class="nav-link" data-scroll-target="#global-spatial-autocorrelation">4.4 Global Spatial Autocorrelation</a>
   <ul class="collapse">
   <li><a href="#computing-contiguity-spatial-weights" id="toc-computing-contiguity-spatial-weights" class="nav-link" data-scroll-target="#computing-contiguity-spatial-weights">4.4.1 Computing Contiguity Spatial Weights</a></li>
@@ -288,7 +295,52 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">1.1 Overview</h2>
-<p>Geospatial analytics hold tremendous potential to address complex problems facing society. In this study, you are tasked to apply appropriate global and local measures of spatial Association techniques to reveals the spatial patterns of Not Functional water points. For the purpose of this study, Nigeria will be used as the study country.</p>
+<p>Geospatial analytics hold tremendous potential to address complex problems facing society. In this study, you are tasked to apply appropriate global and local measures of spatial Association techniques to reveals the spatial patterns of Functional &amp; Not Functional water points. For the purpose of this study, Nigeria will be used as the study country.</p>
+<section id="the-data" class="level3">
+<h3 class="anchored" data-anchor-id="the-data">1.1.1 The Data</h3>
+<section id="apstial-data" class="level4">
+<h4 class="anchored" data-anchor-id="apstial-data">1.1.1.1 Apstial data</h4>
+<p>For the purpose of this assignment, data from <a href="https://www.waterpointdata.org/access-data/">WPdx Global Data Repositories</a> will be used. There are two versions of the data. They are: WPdx-Basic and WPdx+. You are required to use WPdx+ data set. We will rename this file to “geo_export”.</p>
+</section>
+<section id="geospatial-data" class="level4">
+<h4 class="anchored" data-anchor-id="geospatial-data">1.1.1.2 Geospatial data</h4>
+<p>Nigeria Level-2 Administrative Boundary (also known as Local Government Area) polygon features GIS data will be used in this take-home exercise. The data can be downloaded either from The <a href="https://data.humdata.org/">Humanitarian Data Exchange</a> portal or <a href="https://www.geoboundaries.org/">geoBoundaries</a>. We will use the file “nga_polnda_adm2_1m_salb”.</p>
+</section>
+</section>
+<section id="the-task" class="level3">
+<h3 class="anchored" data-anchor-id="the-task"><strong>1.1.2 The Task</strong></h3>
+<p>The specific tasks of this take-home exercise are as follows:</p>
+<ul>
+<li><p>Using appropriate sf method, import the shapefile into R and save it in a simple feature data frame format. Note that there are three Projected Coordinate Systems of Nigeria, they are: EPSG: 26391, 26392, and 26303. You can use any one of them.</p></li>
+<li><p>Using appropriate tidyr and dplyr methods, derive the proportion of functional and non-functional water point at LGA level.</p></li>
+<li><p>Combining the geospatial and aspatial data frame into simple feature data frame.</p></li>
+<li><p>Performing outliers/clusters analysis by using appropriate local measures of spatial association methods.</p></li>
+<li><p>Performing hotspot areas analysis by using appropriate local measures of spatial association methods.</p></li>
+</ul>
+</section>
+<section id="thematic-mapping" class="level3">
+<h3 class="anchored" data-anchor-id="thematic-mapping"><strong>1.1.3 Thematic Mapping</strong></h3>
+<ul>
+<li>Plot maps to show the spatial distribution of functional and non-functional water point rate at LGA level by using appropriate thematic mapping technique provided by tmap package.</li>
+</ul>
+</section>
+<section id="analytical-mapping" class="level3">
+<h3 class="anchored" data-anchor-id="analytical-mapping"><strong>1.1.4 Analytical Mapping</strong></h3>
+<ul>
+<li>Plot hotspot areas and outliers/clusters maps of functional and non-functional water point rate at LGA level by using appropriate thematic mapping technique provided by tmap package.</li>
+</ul>
+</section>
+<section id="grading-criteria" class="level3">
+<h3 class="anchored" data-anchor-id="grading-criteria"><strong>1.1.5 Grading Criteria</strong></h3>
+<p>This exercise will be graded by using the following criteria:</p>
+<ul>
+<li><p><strong>Geospatial Data Wrangling (20 marks):</strong> This is an important aspect of geospatial analytics. You will be assessed on your ability to employ appropriate R functions from various R packages specifically designed for modern data science such as readr, tidyverse (tidyr, dplyr, ggplot2), sf just to mention a few of them, to perform the entire geospatial data wrangling processes, including. This is not limited to data import, data extraction, data cleaning and data transformation. Besides assessing your ability to use the R functions, this criterion also includes your ability to clean and derive appropriate variables to meet the analysis need. (Warning: All data are like vast grassland full of land mines. Your job is to clear those mines and not to step on them).</p></li>
+<li><p><strong>Geospatial Analysis (25 marks):</strong> In this exercise, you are expected to use the appropriate thematic and analytics mapping techniques and R functions introduced in class to analyse the geospatial data prepared. You will be assessed on your ability to derive analytical maps by using appropriate rate mapping techniques.</p></li>
+<li><p><strong>Geovisualisation and Geocommunication (25 marks):</strong> In this section, you will be assessed on your ability to communicate the complex spatial statistics results in business friendly visual representations. This course is geospatial centric, hence, it is important for you to demonstrate your competency in using appropriate. geovisualisation techniques to reveal and communicate the findings of your analysis.</p></li>
+<li><p><strong>Reproducibility (20 marks):</strong> This is an important learning outcome of this exercise. You will be assessed on your ability to provide a comprehensive documentation of the analysis procedures in the form of code chunks of Markdown. It is important to note that it is not enough by merely providing the code chunk without any explanation on the purpose and R function(s) used.</p></li>
+<li><p><strong>Bonus (10 marks):</strong> Demonstrate your ability to employ methods beyond what you had learned in class to gain insights from the data. The methods used must be geospatial in nature.</p></li>
+</ul>
+</section>
 </section>
 <section id="getting-started" class="level2">
 <h2 class="anchored" data-anchor-id="getting-started">1.2 Getting Started</h2>
@@ -304,8 +356,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, spdep, tmap, tidyverse, tmap, funModeling)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="importing-geospatial-data" class="level2">
-<h2 class="anchored" data-anchor-id="importing-geospatial-data">1.3 Importing Geospatial Data</h2>
+<section id="downloading-and-importing-geospatial-data" class="level2">
+<h2 class="anchored" data-anchor-id="downloading-and-importing-geospatial-data">1.3 Downloading and Importing Geospatial Data</h2>
 <p>In this in-class data, two geospatial data sets will be used, they are:</p>
 <ul>
 <li><p>geo_export</p></li>
@@ -580,8 +632,8 @@ First 10 features:
 <section id="visualizing-the-spatial-distribution-of-water-points" class="level2">
 <h2 class="anchored" data-anchor-id="visualizing-the-spatial-distribution-of-water-points">3 Visualizing the spatial distribution of water points</h2>
 </section>
-<section id="thematic-mapping" class="level2">
-<h2 class="anchored" data-anchor-id="thematic-mapping">3.1 Thematic Mapping</h2>
+<section id="thematic-mapping-1" class="level2">
+<h2 class="anchored" data-anchor-id="thematic-mapping-1">3.1 Thematic Mapping</h2>
 <p>Maps are plotted to show the spatial distribution of functional and non-functional water point rate at LGA level by using appropriate thematic mapping technique provided by tmap package.</p>
 <p>To draw a high quality cartographic choropleth map as shown in the figure below, <strong>tmap</strong>’s drawing elements should be used.</p>
 <p>In the code chunk below, the following <em>tmap’s drawing elements are used:</em></p>
@@ -3620,9 +3672,14 @@ attr(,"class")
 <span id="cb110-5"><a href="#cb110-5" aria-hidden="true" tabindex="-1"></a>          <span class="at">style =</span> <span class="st">"equal"</span>,</span>
 <span id="cb110-6"><a href="#cb110-6" aria-hidden="true" tabindex="-1"></a>          <span class="at">palette=</span><span class="st">"-RdBu"</span>,</span>
 <span id="cb110-7"><a href="#cb110-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">title =</span> <span class="st">"local Gi"</span>) <span class="sc">+</span></span>
-<span id="cb110-8"><a href="#cb110-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>)</span>
-<span id="cb110-9"><a href="#cb110-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb110-10"><a href="#cb110-10" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(f_wpt_plot, Gimap, <span class="at">asp=</span><span class="dv">1</span>, <span class="at">ncol=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb110-8"><a href="#cb110-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb110-9"><a href="#cb110-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">tm_layout</span>(<span class="at">main.title =</span> <span class="st">"Local GI for Functional Waterpoints"</span>,</span>
+<span id="cb110-10"><a href="#cb110-10" aria-hidden="true" tabindex="-1"></a>              <span class="at">main.title.position =</span> <span class="st">"center"</span>,</span>
+<span id="cb110-11"><a href="#cb110-11" aria-hidden="true" tabindex="-1"></a>              <span class="at">main.title.size =</span> <span class="fl">0.8</span>,</span>
+<span id="cb110-12"><a href="#cb110-12" aria-hidden="true" tabindex="-1"></a>              <span class="at">legend.height =</span> <span class="fl">0.4</span>,</span>
+<span id="cb110-13"><a href="#cb110-13" aria-hidden="true" tabindex="-1"></a>              <span class="at">legend.width =</span> <span class="fl">0.3</span>)</span>
+<span id="cb110-14"><a href="#cb110-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb110-15"><a href="#cb110-15" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(f_wpt_plot, Gimap, <span class="at">asp=</span><span class="dv">1</span>, <span class="at">ncol=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <p><img src="Take-home_Ex1_files/figure-html/unnamed-chunk-82-1.png" class="img-fluid" width="672"></p>
 </div>
@@ -3638,9 +3695,15 @@ attr(,"class")
 <span id="cb111-5"><a href="#cb111-5" aria-hidden="true" tabindex="-1"></a>          <span class="at">style =</span> <span class="st">"equal"</span>,</span>
 <span id="cb111-6"><a href="#cb111-6" aria-hidden="true" tabindex="-1"></a>          <span class="at">palette=</span><span class="st">"-RdBu"</span>,</span>
 <span id="cb111-7"><a href="#cb111-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">title =</span> <span class="st">"local Gi"</span>) <span class="sc">+</span></span>
-<span id="cb111-8"><a href="#cb111-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>)</span>
-<span id="cb111-9"><a href="#cb111-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb111-10"><a href="#cb111-10" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(nf_wpt_plot, Gimap, <span class="at">asp=</span><span class="dv">1</span>, <span class="at">ncol=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb111-8"><a href="#cb111-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb111-9"><a href="#cb111-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_layout</span>(<span class="at">main.title =</span> <span class="st">"Local GI for Non-functional Waterpoints"</span>,</span>
+<span id="cb111-10"><a href="#cb111-10" aria-hidden="true" tabindex="-1"></a>              <span class="at">main.title.position =</span> <span class="st">"center"</span>,</span>
+<span id="cb111-11"><a href="#cb111-11" aria-hidden="true" tabindex="-1"></a>              <span class="at">main.title.size =</span> <span class="fl">0.8</span>,</span>
+<span id="cb111-12"><a href="#cb111-12" aria-hidden="true" tabindex="-1"></a>              <span class="at">legend.height =</span> <span class="fl">0.4</span>,</span>
+<span id="cb111-13"><a href="#cb111-13" aria-hidden="true" tabindex="-1"></a>              <span class="at">legend.width =</span> <span class="fl">0.3</span>)</span>
+<span id="cb111-14"><a href="#cb111-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb111-15"><a href="#cb111-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb111-16"><a href="#cb111-16" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(nf_wpt_plot, Gimap, <span class="at">asp=</span><span class="dv">1</span>, <span class="at">ncol=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <p><img src="Take-home_Ex1_files/figure-html/unnamed-chunk-83-1.png" class="img-fluid" width="672"></p>
 </div>
