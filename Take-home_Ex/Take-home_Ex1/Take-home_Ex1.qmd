@@ -1,0 +1,1160 @@
+---
+title: "Take-home Exercise 1: Geospatial Analytics for Social Good"
+execute:
+    warning: false
+    message: false
+editor: visual
+---
+
+## 1.1 Overview
+
+Geospatial analytics hold tremendous potential to address complex problems facing society. In this study, you are tasked to apply appropriate global and local measures of spatial Association techniques to reveals the spatial patterns of Not Functional water points. For the purpose of this study, Nigeria will be used as the study country.
+
+## 1.2 Getting Started
+
+In the code chunk below, `p_load()` of *pacman* package is used to install and load the following R packages into R environment:
+
+-   sf,
+
+-   tidyverse,
+
+-   tmap,
+
+-   spdep, and
+
+-   funModeling will be used for rapid Exploratory Data Analysis
+
+```{r}
+pacman::p_load(sf, spdep, tmap, tidyverse, tmap, funModeling)
+```
+
+## 1.3 Importing Geospatial Data
+
+In this in-class data, two geospatial data sets will be used, they are:
+
+-   geo_export
+
+-   nga_polnda_adm2_1m_salb
+
+### 1.3.1 Importing water point geospatial data
+
+First, we are going to import the water point geospatial data (i.e. geo_export) by using the code chunk below.
+
+```{r eval= FALSE}
+wp = st_read(dsn = 'geodata',
+             layer = 'geo_export',
+             crs = 4326) %>%
+    filter(clean_coun == 'Nigeria')
+```
+
+```{r eval= FALSE}
+write_rds(wp, 'geodata/wp_nga.rds')
+```
+
+Things to learn from the code chunk above:
+
+-   `st_read()` of **sf** package is used to import *geo_export* shapefile into R environment and save the imported geospatial data into simple feature data table.
+
+-   `filter()` of dplyr package is used to extract water point records of Nigeria.
+
+> Be warned: Avoid performing transformation if you plan to use `st_intersects()` of **sf** package in the later stage of the geoprocessing. This is because `st_intersects()` only works correctly if the geospatial data are in geographic coordinate system (i.e. wgs84)
+
+Next, `write_rds()` of readr package is used to save the extracted sf data table (i.e. wp) into an output file in rds data format. The output file is called *wp_nga.rds* and it is saved in *geodata* sub-folder.
+
+```{r eval= FALSE}
+wp_nga = write_rds(wp,
+                   'geodata/wp_nga.rds')
+```
+
+### 1.3.2 Importing Nigeria LGA boundary data
+
+Now, we are going to import the LGA boundary data into R environment by using the code chunk below.
+
+```{r eval= FALSE}
+nga = st_read(dsn = 'geodata',
+              layer = 'nga_polnda_adm2_1m_salb',
+              crs = 4326) 
+```
+
+Thing to learn from the code chunk above.
+
+-   `st_read()` of **sf** package is used to import nga_polnda_adm2_1m_salb shapefile into R environment and save the imported geospatial data into simple feature data table.
+
+## 1.4 Data Wrangling
+
+### 1.4.1 Recoding NA values into string
+
+In the code chunk below, `replace_na()` is used to recode all the *NA* values in *status_cle* field into *Unknown*.
+
+```{r eval= FALSE}
+wp_nga <- read_rds("geodata/wp_nga.rds") %>%
+    mutate(status_cle = replace_na(status_cle, "Unknown"))
+```
+
+### 1.4.2 EDA
+
+In the code chunk below, `freq()` of **funModeling** package is used to display the distribution of *status_cle* field in *wp_nga*.
+
+```{r eval= FALSE}
+freq(data=wp_nga, 
+     input = 'status_cle')
+```
+
+## 1.5 Extracting Water Point Data
+
+In this section, we will extract the water point records by using classes in *status_cle* field.
+
+### 1.5.1 Extracting functional water point
+
+In the code chunk below, `filter()` of dplyr is used to select functional water points.
+
+```{r eval= FALSE}
+wpt_functional <- wp_nga %>%
+  filter(status_cle %in%
+           c("Functional", 
+             "Functional but not in use",
+             "Functional but needs repair"))
+```
+
+```{r eval= FALSE}
+freq(data=wpt_functional, 
+     input = 'status_cle')
+```
+
+### 1.5.2 Extracting non-functional water point
+
+In the code chunk below, `filter()` of dplyr is used to select non-functional water points.
+
+```{r eval= FALSE}
+wpt_nonfunctional <- wp_nga %>%
+  filter(status_cle %in%
+           c("Abandoned/Decommissioned", 
+             "Abandoned",
+             "Non-Functional",
+             "Non functional due to dry season",
+             "Non-Functional due to dry season"))
+```
+
+```{r eval= FALSE}
+freq(data=wpt_nonfunctional, 
+     input = 'status_cle')
+```
+
+### 1.5.3 Extracting water point with Unknown class
+
+In the code chunk below, `filter()` of dplyr is used to select water points with unknown status.
+
+```{r eval= FALSE}
+wpt_unknown <- wp_nga %>%
+  filter(status_cle == "Unknown")
+```
+
+### 1.5.4 Performing Point-in-Polygon Count
+
+```{r eval= FALSE}
+nga_wp <- nga %>% 
+  mutate(`total wpt` = lengths(
+    st_intersects(nga, wp_nga))) %>%
+  mutate(`wpt functional` = lengths(
+    st_intersects(nga, wpt_functional))) %>%
+  mutate(`wpt non-functional` = lengths(
+    st_intersects(nga, wpt_nonfunctional))) %>%
+  mutate(`wpt unknown` = lengths(
+    st_intersects(nga, wpt_unknown)))
+```
+
+### 1.5.5 Saving the Analytical Data Table
+
+```{r eval= FALSE}
+nga_wp <- nga_wp %>%
+  mutate(pct_functional = `wpt functional`/`total wpt`) %>%
+  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`)
+```
+
+Things to learn from the code chunk above:
+
+-   `mutate()` of **dplyr** package is used to derive two fields namely *pct_functional* and *pct_non-functional*.
+
+Now, you have the tidy sf data table subsequent analysis. We will save the sf data table into rds format.
+
+```{r eval= FALSE}
+write_rds(nga_wp, "geodata/nga_wp.rds")
+```
+
+Before you end this section, please remember to delete away all the raw data. Notice that the only data file left is *nga_wp.rds* and it's file size is around 2.1MB.
+
+### 1.5.6 Working with Projection
+
+Map projection is an important property of a geospatial data. In order to perform geoprocessing using two geospatial data, we need to ensure that both geospatial data are projected using similar coordinate system.
+
+In this section, you will learn how to project a simple feature data frame from one coordinate system to another coordinate system. The technical term of this process is called **projection transformation**.
+
+We will first use *st_crs()* of *sf* package as shown in the code chunk below to check the coordinate system of nga_wp dataframe.
+
+```{r}
+nga_wp <- read_rds("geodata/nga_wp.rds")
+
+st_crs(nga_wp)
+```
+
+Although `nga_wp`data frame is projected in wgs84 but when we read until the end of the print, it indicates that the EPSG is 4326. This is a wrong EPSG code because the correct EPSG code for wgs84 should be 26391.
+
+### 1.5.9 Transforming the projection of preschool from wgs84 to EPSG 26391.
+
+In geospatial analytics, it is very common for us to transform the original data from geographic coordinate system to projected coordinate system. This is because geographic coordinate system is not appropriate if the analysis requires the use of distance or/and area measurements.
+
+We need to reproject `nga_wp`from one coordinate system to another coordinate system mathematically.
+
+Let us perform the projection transformation by using the code chunk below.
+
+```{r}
+nga_wp <- read_rds("geodata/nga_wp.rds")
+nga_wp26391 <- st_transform(nga_wp,
+                    crs = 26391)
+st_crs(nga_wp26391)
+```
+
+For simplicity sake, nga_wp26391 will be renamed to nga_wp and overwrite its data using the code chunk below.
+
+```{r}
+nga_wp <- nga_wp26391
+```
+
+## 2 Proportion of functional and non-functional water point at LGA level.
+
+There are in total 773 LGA as per nga_wp26391 data table. We shall extract the relevant information and create a table (tab) to show the relevant columns (proportion of functional and non-functional water points at LGA level)
+
+```{r}
+tab <- nga_wp[,c(6,14,15,16,18,19)]
+tab
+```
+
+## 3 Visualizing the spatial distribution of water points
+
+## 3.1 Thematic Mapping
+
+Maps are plotted to show the spatial distribution of functional and non-functional water point rate at LGA level by using appropriate thematic mapping technique provided by tmap package.
+
+To draw a high quality cartographic choropleth map as shown in the figure below, **tmap**'s drawing elements should be used.
+
+In the code chunk below, the following *tmap's drawing elements are used:*
+
+-   *tm_shape()* is used to define the input data (i.e nga_wp)
+
+-   *tm_fill()* shades the polygons by using the default colour scheme to show the geographical distribution of a selected variable (i.e `` wpt functional and `wpt non-functional ``)
+
+-   *tm_borders()* adds the borders of the shapefile onto the choropleth map
+
+-   *tm_layout()* refers to the combination of all map elements into a cohensive map. Map elements include among others the objects to be mapped, the title, the scale bar, the compass, margins and aspects ratios. Colour settings and data classification methods covered in the previous section relate to the palette and break-points are used to affect how the map looks.
+
+The 2 maps are placed side by side for better comparison using tmap_arrange().
+
+```{r}
+wP_functional <- tm_shape(nga_wp)+
+    tm_fill("wpt functional",
+            style = "equal")+
+    tm_layout(main.title = "Functional Waterpoints",
+              main.title.position = "center",
+              main.title.size = 0.8,
+              legend.height = 0.4,
+              legend.width = 0.3)+
+    tm_borders(lwd = 0.1, alpha = 0.5)
+
+wp_nonfunctional <- tm_shape(nga_wp)+
+    tm_fill( "wpt non-functional",
+            style = "equal")+
+    tm_layout(main.title = "Non-functional Waterpoints",
+              main.title.position = "center",
+              main.title.size = 0.8,
+              legend.height = 0.4,
+              legend.width = 0.3)+
+    tm_borders(lwd = 0.1, alpha = 0.5)
+
+tmap_arrange(wP_functional, wp_nonfunctional, asp=1, ncol=2)
+```
+
+## 4.4 Global Spatial Autocorrelation
+
+In this section, we will compute global spatial autocorrelation statistics and perform spatial complete randomness test for global spatial autocorrelation.
+
+### 4.4.1 Computing Contiguity Spatial Weights
+
+Before we can compute the global spatial autocorrelation statistics, we need to construct a spatial weights of the study area. The spatial weights is used to define the neighborhood relationships between the geographical units (i.e. ADM2_CODE) in the study area.
+
+In the code chunk below, [*poly2nb()*](https://r-spatial.github.io/spdep/reference/poly2nb.html) of **spdep** package is used to compute contiguity weight matrices for the study area. This function builds a neighbors list based on regions with contiguous boundaries. If you look at the documentation you will see that you can pass a "queen" argument that takes TRUE or FALSE as options. If you do not specify this argument the default is set to TRUE, that is, if you don't specify queen = FALSE this function will return a list of first order neighbors using the Queen criteria.
+
+More specifically, the code chunk below is used to compute Queen contiguity weight matrix.
+
+```{r}
+wm_q <- poly2nb(nga_wp, 
+                queen=TRUE)
+summary(wm_q)
+```
+
+The summary report above shows that there are 773 area units in Nigeria. The most connected area unit (516) has 13 neighbors. There are two area units (475 & 505) with only one neighbor.
+
+### 4.4.2 Row-standardized weights matrix
+
+Next, we need to assign weights to each neighboring polygon. In our case, each neighboring polygon will be assigned equal weight (style="W"). This is accomplished by assigning the fraction 1/(#ofneighbors) to each neighboring county then summing the weighted income values. While this is the most intuitive way to summaries the neighbors' values it has one drawback in that polygons along the edges of the study area will base their lagged values on fewer polygons thus potentially over- or under-estimating the true nature of the spatial autocorrelation in the data. For this example, we'll stick with the style="W" option for simplicity's sake but note that other more robust options are available, notably style="B".
+
+```{r}
+rswm_q <- nb2listw(wm_q, 
+                   style="W", 
+                   zero.policy = TRUE)
+rswm_q
+```
+
+The input of *nb2listw()* must be an object of class **nb**. The syntax of the function has two major arguments, namely style and zero.policy.
+
+-   *style* can take values "W", "B", "C", "U", "minmax" and "S". B is the basic binary coding, W is row standardized (sums over all links to n), C is globally standardized (sums over all links to n), U is equal to C divided by the number of neighbors (sums over all links to unity), while S is the variance-stabilizing coding scheme proposed by Tiefelsdorf et al. 1999, p. 167-168 (sums over all links to n).
+-   If *zero policy* is set to TRUE, weights vectors of zero length are inserted for regions without neighbor in the neighbors list. These will in turn generate lag values of zero, equivalent to the sum of products of the zero row t(rep(0, length=length(neighbors))) %\*% x, for arbitrary numerical vector x of length length(neighbors). The spatially lagged value of x for the zero-neighbor region will then be zero, which may (or may not) be a sensible choice.
+
+### 4.4.3 Global Spatial Autocorrelation: Moran's I & Geary's C for Functional Waterpoints
+
+In this section, we will perform Moran's I statistics testing by using [*moran.test()*](https://r-spatial.github.io/spdep/reference/moran.test.html) and [geary.test()](https://r-spatial.github.io/spdep/reference/geary.test.html) of **spdep** for functional waterpoints.
+
+#### 4.4.3.1 Moran's I test for Functional Waterpoints
+
+The code chunk below performs Moran's I statistical testing using [*moran.test()*](https://r-spatial.github.io/spdep/reference/moran.test.html) of **spdep**.
+
+```{r}
+f_wpt = moran.test(nga_wp$`wpt functional`,
+                       listw=rswm_q,
+                       zero.policy = TRUE,
+                       na.action=na.omit)
+f_wpt
+```
+
+Moran I statistic is found to be 0.5518087465. positive (I\>0): Clustered, observations tend to be similar. There is a need to confirm the Moran I statistic by comparing actual value of Moran's I to Monte Carlo Moran's I to obtain p-value.
+
+#### 4.4.3.2 Computing Monte Carlo Moran's I for Functional Waterpoints
+
+The code chunk below performs permutation test for Moran's I statistic by using [*moran.mc()*](https://r-spatial.github.io/spdep/reference/moran.mc.html) of **spdep**. A total of 1000 simulation will be performed.
+
+Bear in mind the number of simulation starts counting from 0 hence nsim = 999.
+
+set seed (value) where value specifies the initial value of the random number seed.
+
+The na.omit R function **removes all incomplete cases** of a data object
+
+```{r}
+set.seed(1234)
+bperm_f_wpt = moran.mc(nga_wp$`wpt functional`, 
+                listw=rswm_q, 
+                nsim=999, 
+                zero.policy = TRUE, 
+                na.action=na.omit)
+bperm_f_wpt
+```
+
+Monte Carlo Moran's I is identical to previously obtained Moran I statistic. The p-value is 0.001 \< 0.05, hence the result is statistically significant. Hence we can conclude that there is indeed clustering.
+
+#### 4.4.3.3 Visualizing Monte Carlo Moran's I for Functional Waterpoints
+
+It is always a good practice for us the examine the simulated Moran's I test statistics in greater detail. This can be achieved by plotting the distribution of the statistical values as a histogram by using the code chunks below.
+
+```{r}
+hist(bperm_f_wpt$res, 
+     freq=TRUE,
+     xlim = c(-0.1,0.6),
+     breaks=50,
+     main = "Histogram of Monte Carlo Moran's I for Functional Waterpoints",
+     xlab="Simulated Moran's I for Functional Waterpoints")
+abline(v=0, 
+       col="red") 
+```
+
+#### 4.4.3.4 Geary's C test for Functional Waterpoints
+
+The code chunk below performs Geary's C statistical testing using [geary.test()](https://r-spatial.github.io/spdep/reference/geary.test.html) of **spdep**.
+
+```{r}
+geary.test(nga_wp$`wpt functional`, listw=rswm_q)
+```
+
+Geary C statistic is found to be 0.468025940. small c value (\<1): Clustered, observations tend to be similar. There is a need to confirm the Geary C statistic by comparing actual value of Geary's C to Monte Carlo Geary's C to obtain p-value.
+
+#### 4.4.3.5 Computing Monte Carlo Geary's C for Functional Waterpoints
+
+```{r}
+set.seed(1234)
+bperm_g_f_wpt=geary.mc(nga_wp$`wpt functional`, 
+               listw=rswm_q, 
+               nsim=999)
+bperm_g_f_wpt
+```
+
+Monte Carlo Geary's C is identical to previously obtained Geary C statistic. The p-value is 0.001 \< 0.05, hence the result is statistically significant. Hence we can conclude that there is indeed clustering.
+
+#### 4.4.3.6 Visualizing the Monte Carlo Geary's C for Functional Waterpoints
+
+```{r}
+hist(bperm_g_f_wpt$res,
+     freq=TRUE,
+     breaks=20,
+     main = "Histogram of Monte Carlo Geary's C for Functional Waterpoints",
+     xlab="Simulated Geary's C for Functional Waterpoints")
+abline(v=1, col="red")
+```
+
+#### 4.4.3.7 Conclusion after review of Monte Carlo histograms of both Moran's I and Geary's C for Functional Waterpoints
+
+It is acceptable to use either Moran's I or Geary's C as their p-values are below 0.05. There is no merit to choose one over the other as distribution of both histograms are not approximately normal. Moving forward, we will be using Moran's I for functional waterpoints.
+
+### 4.4.4 Global Spatial Autocorrelation: Moran's I & Geary's C for Non-functional Waterpoints
+
+In this section, we will perform Moran's I statistics testing by using [*moran.test()*](https://r-spatial.github.io/spdep/reference/moran.test.html) and [geary.test()](https://r-spatial.github.io/spdep/reference/geary.test.html) of **spdep** for non-functional waterpoints.
+
+#### 4.4.4.1 Moran's I test for Non-functional Waterpoints
+
+The code chunk below performs Moran's I statistical testing using [*moran.test()*](https://r-spatial.github.io/spdep/reference/moran.test.html) of **spdep**.
+
+```{r}
+nf_wpt = moran.test(nga_wp$`wpt non-functional`,
+                       listw=rswm_q,
+                       zero.policy = TRUE,
+                       na.action=na.omit)
+nf_wpt
+```
+
+Moran I statistic is found to be 0.4301096187. positive (I\>0): Clustered, observations tend to be similar. There is a need to confirm the Moran I statistic by comparing actual value of Moran's I to Monte Carlo Moran's I to obtain p-value.
+
+#### 4.4.4.2 Computing Monte Carlo Moran's I for Non-functional Waterpoints
+
+```{r}
+set.seed(1234)
+bperm_nf_wpt = moran.mc(nga_wp$`wpt non-functional`, 
+                listw=rswm_q, 
+                nsim=999, 
+                zero.policy = TRUE, 
+                na.action=na.omit)
+bperm_nf_wpt
+```
+
+Monte Carlo Moran's I is identical to previously obtained Moran I statistic. The p-value is 0.001 \< 0.05, hence the result is statistically significant. Hence we can conclude that there is indeed clustering.
+
+#### 4.4.4.3 Visualizing Monte Carlo Moran's I for Non-functional Waterpoints
+
+```{r}
+hist(bperm_nf_wpt$res, 
+     freq=TRUE,
+     xlim = c(-0.1,0.5),
+     breaks=50,
+     main = "Histogram of Monte Carlo Moran's I for Non-functional Waterpoints",
+     xlab="Simulated Moran's I")
+abline(v=0, 
+       col="red") 
+```
+
+#### 4.4.4.4 Geary's C test for Non-functional Waterpoints
+
+The code chunk below performs Geary's C test for spatial autocorrelation by using [*geary.test()*](https://r-spatial.github.io/spdep/reference/geary.test.html) of **spdep**.
+
+```{r}
+geary.test(nga_wp$`wpt non-functional`, listw=rswm_q)
+```
+
+Geary C statistic is found to be 0.6289314781. Small c value (\<1): Clustered, observations tend to be similar. There is a need to confirm the Geary C statistic by comparing actual value of Geary's C to Monte Carlo Geary's C to obtain p-value.
+
+#### 4.4.4.5 Computing Monte Carlo Geary's C for Non-functional Waterpoints
+
+```{r}
+set.seed(1234)
+bperm_g_nf_wpt=geary.mc(nga_wp$`wpt non-functional`, 
+               listw=rswm_q, 
+               nsim=999)
+bperm_g_nf_wpt
+```
+
+Monte Carlo Geary's C is identical to previously obtained Geary C statistic. The p-value is 0.001 \< 0.05, hence the result is statistically significant. Hence we can conclude that there is indeed clustering.
+
+#### 4.4.4.6 Visualizing the Monte Carlo Geary's C for Non-functional Waterpoints
+
+Next, we will plot a histogram to reveal the distribution of the simulated values by using the code chunk below.
+
+```{r}
+hist(bperm_g_nf_wpt$res,
+     freq=TRUE,
+     breaks=20,
+     main = "Histogram of Monte Carlo Geary's C for Non-functional Waterpoints",
+     xlab="Simulated Geary's C for Non-functional Waterpoint ")
+abline(v=1, col="red") 
+```
+
+#### 4.4.3.7 Conclusion after review of Monte Carlo histograms of both Moran's I and Geary's C for Non-functional Waterpoints
+
+It is acceptable to use either Moran's I or Geary's C as their p-values are below 0.05. There is no merit to choose one over the other as distribution of both histograms are not approximately normal. Moving forward, we will be using Moran's I for non-functional waterpoints.
+
+## 4.5 Spatial Correlogram
+
+Spatial correlograms are great to examine patterns of spatial autocorrelation in your data or model residuals. They show how correlated are pairs of spatial observations when you increase the distance (lag) between them - they are plots of some index of autocorrelation (Moran's I or Geary's c) against distance. Although correlograms are not as fundamental as variograms (a keystone concept of geostatistics), they are very useful as an exploratory and descriptive tool. For this purpose they actually provide richer information than variograms.
+
+### 4.5.1 Compute Moran's I correlogram for Functional Waterpoints
+
+In the code chunk below, [*sp.correlogram()*](https://r-spatial.github.io/spdep/reference/sp.correlogram.html) of **spdep** package is used to compute a 6-lag spatial correlogram of \`wpt functional\`. The global spatial autocorrelation used in Moran's I. The **plot()** of base Graph is then used to plot the output.
+
+```{r}
+MI_corr_f_wpt <- sp.correlogram(wm_q, 
+                          nga_wp$`wpt functional`, 
+                          order=6, 
+                          method="I", 
+                          style="W")
+plot(MI_corr_f_wpt)
+```
+
+By plotting the output might not allow us to provide complete interpretation. This is because not all autocorrelation values are statistically significant. Hence, it is important for us to examine the full analysis report by printing out the analysis results as in the code chunk below.
+
+```{r}
+print(MI_corr_f_wpt)
+```
+
+Moran's I decrease as spatial lags increases from 1 to 6. As the order of neighbor increases, the degree of clustering decreases. After multiple testings, Pr(I) is not statistically significant at spatial lag 10 and Moran's I turns negative starting henceforth.
+
+### 4.5.2 Compute Geary's C correlogram and plot for Functional Waterpoints
+
+```{r}
+GC_corr_f_wpt <- sp.correlogram(wm_q, 
+                          nga_wp$`wpt functional`, 
+                          order=6, 
+                          method="C", 
+                          style="W")
+plot(GC_corr_f_wpt)
+```
+
+By plotting the output might not allow us to provide complete interpretation. This is because not all autocorrelation values are statistically significant. Hence, it is important for us to examine the full analysis report by printing out the analysis results as in the code chunk below.
+
+```{r}
+print(GC_corr_f_wpt)
+```
+
+Geary's C increases as spatial lags increases from 1 to 6. As the order of neighbor increases, the degree of clustering decreases. After multiple testings, Geary's C turns flat staying below 1 starting from spatial lag 7.
+
+### 4.5.3 Compute Moran's I correlogram for Non-functional Waterpoints
+
+```{r}
+MI_corr_nf_wpt <- sp.correlogram(wm_q, 
+                          nga_wp$`wpt non-functional`, 
+                          order=6, 
+                          method="I", 
+                          style="W")
+plot(MI_corr_nf_wpt)
+```
+
+By plotting the output might not allow us to provide complete interpretation. This is because not all autocorrelation values are statistically significant. Hence, it is important for us to examine the full analysis report by printing out the analysis results as in the code chunk below.
+
+```{r}
+print(MI_corr_nf_wpt)
+```
+
+Moran's I decrease as spatial lags increases from 1 to 6. As the order of neighbor increases, the degree of clustering decreases. After multiple testings, Pr(I) is not statistically significant at spatial lag 7 and Moran's I turns negative starting henceforth.
+
+### 4.5.4 Compute Geary's C correlogram and plot
+
+In the code chunk below, *sp.correlogram()* of **spdep** package is used to compute a 6-lag spatial correlogram of \`wpt non-functional\`. The global spatial autocorrelation used in Geary's C. The **plot()** of base Graph is then used to plot the output.
+
+```{r}
+GC_corr_nf_wpt <- sp.correlogram(wm_q, 
+                          nga_wp$`wpt non-functional`, 
+                          order=8, 
+                          method="C", 
+                          style="W")
+plot(GC_corr_nf_wpt)
+```
+
+By plotting the output might not allow us to provide complete interpretation. This is because not all autocorrelation values are statistically significant. Hence, it is important for us to examine the full analysis report by printing out the analysis results as in the code chunk below.
+
+```{r}
+print(GC_corr_nf_wpt)
+```
+
+Geary's C increases as spatial lags increases from 1 to 6. As the order of neighbor increases, the degree of clustering decreases. After multiple testings, Pr(I) is not statistically significant at spatial lag 6, Geary's C goes above 1 starting from spatial lag 7.
+
+## 4.6 Cluster and Outlier Analysis
+
+Local Indicators of Spatial Association or LISA are statistics that evaluate the existence of clusters in the spatial arrangement of a given variable. For instance if we are studying cancer rates among census tracts in a given city local clusters in the rates mean that there are areas that have higher or lower rates than is to be expected by chance alone; that is, the values occurring are above or below those of a random distribution in space.
+
+In this section, you will learn how to apply appropriate Local Indicators for Spatial Association (LISA), especially local Moran's I to detect cluster and/or outlier from functional and non-functional waterpoints of Nigeria.
+
+### 4.6.1 Computing local Moran's I for Functional Waterpoints
+
+To compute local Moran's I, the [*localmoran()*](https://r-spatial.github.io/spdep/reference/localmoran.html) function of **spdep** will be used. It computes *Ii* values, given a set of *zi* values and a listw object providing neighbor weighting information for the polygon associated with the zi values.
+
+The code chunks below are used to compute local Moran's I of functional waterpoints at the county level.
+
+```{r}
+fips <- order(nga_wp$ADM2_CODE)
+localMI_f_wpt <- localmoran(nga_wp$`wpt functional`, rswm_q)
+head(localMI_f_wpt)
+```
+
+*localmoran()* function returns a matrix of values whose columns are:
+
+-   Ii: the local Moran's I statistics
+
+-   E.Ii: the expectation of local Moran's I statistics under the randomization hypothesis
+
+-   Var.Ii: the variance of local Moran's I statistics under the randomization hypothesis
+
+-   Z.Ii:the standard deviate of local Moran's I statistics
+
+-   Pr(): the p-value of local Moran's I statistics
+
+The code chunk below list the content of the local Moran's I statistics matrix derived by using [*printCoefmat()*](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/printCoefmat).
+
+```{r}
+printCoefmat(data.frame(
+  localMI_f_wpt[fips,], 
+  row.names=nga_wp$ADM2_CODE[fips]),
+  check.names=FALSE)
+```
+
+#### 4.6.1.1 Mapping the local Moran's I for Functional Waterpoints
+
+Before mapping the local Moran's I map, it is wise to append the local Moran's I dataframe (i.e. localMI) onto hunan SpatialPolygonDataFrame. The code chunks below can be used to perform the task. The out SpatialPolygonDataFrame is called *hunan.localMI*.
+
+```{r}
+f_wpt.localMI <- cbind(nga_wp,localMI_f_wpt) %>%
+  rename(Pr.Ii = Pr.z....E.Ii..)
+```
+
+#### 4.6.1.2 Mapping both local Moran's I values and p-values for Functional Waterpoints
+
+For effective interpretation, it is better to plot both the local Moran's I values map and its corresponding p-values map next to each other.
+
+The code chunk below will be used to create such visualization.
+
+```{r}
+f_wpt_localMI.map <- tm_shape(f_wpt.localMI) +
+  tm_fill(col = "Ii",
+          breaks=c(-Inf, 0, 5, 10, 15, Inf),
+          title = "Local Moran's I statistics") +
+  tm_borders(alpha = 0.5) +
+    tm_layout(main.title = "Local Moran's I Statistics For Functional Waterpoints",
+              main.title.position = "center",
+              main.title.size = 0.8,
+              legend.height = 0.4,
+              legend.width = 0.3)
+
+f_wpt_pvalue.map <- tm_shape(f_wpt.localMI) +
+  tm_fill(col = "Pr.Ii", 
+          breaks=c(-Inf, 0.001, 0.01, 0.05, 0.1, Inf),
+          palette="-Blues", 
+          title = "Local Moran's I p-values") +
+  tm_borders(alpha = 0.5) +
+    tm_layout(main.title = "Local Moran's I P-values For Functional Waterpoints",
+              main.title.position = "center",
+              main.title.size = 0.8,
+              legend.height = 0.4,
+              legend.width = 0.3)
+
+tmap_arrange(f_wpt_localMI.map, f_wpt_pvalue.map, asp=1, ncol=2)
+```
+
+Ii \> 0 indicates a grouping of similar values (higher or lower than average). Most areas have positive local moran's I statistics with 1 region at the central northern side where there is high local moran's I statistics.
+
+Ii \< 0 indicates a combination of dissimilar values (e.g. high values surrounded by low values). Approximate 1/3 of areas have negative local moran's I statistics.
+
+### 4.6.2 Computing local Moran's I for Non-functional Waterpoints
+
+To compute local Moran's I, the [*localmoran()*](https://r-spatial.github.io/spdep/reference/localmoran.html) function of **spdep** will be used. It computes *Ii* values, given a set of *zi* values and a listw object providing neighbour weighting information for the polygon associated with the zi values.
+
+The code chunks below are used to compute local Moran's I of non-functional waterpoints at the county level.
+
+```{r}
+fips <- order(nga_wp$ADM2_CODE)
+localMI_nf_wpt <- localmoran(nga_wp$`wpt non-functional`, rswm_q)
+head(localMI_nf_wpt)
+```
+
+*localmoran()* function returns a matrix of values whose columns are:
+
+-   Ii: the local Moran's I statistics
+
+-   E.Ii: the expectation of local Moran's I statistics under the randomization hypothesis
+
+-   Var.Ii: the variance of local Moran's I statistics under the randomization hypothesis
+
+-   Z.Ii:the standard deviate of local Moran's I statistics
+
+-   Pr(): the p-value of local Moran's I statistics
+
+The code chunk below list the content of the local Moran's I statistics matrix derived by using [*printCoefmat()*](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/printCoefmat).
+
+```{r}
+printCoefmat(data.frame(
+  localMI_nf_wpt[fips,], 
+  row.names=nga_wp$ADM2_CODE[fips]),
+  check.names=FALSE)
+```
+
+#### 4.6.2.1 Mapping the local Moran's I for Non-functional Waterpoints
+
+Before mapping the local Moran's I map, it is wise to append the local Moran's I dataframe (i.e. localMI) onto hunan SpatialPolygonDataFrame. The code chunks below can be used to perform the task. The out SpatialPolygonDataFrame is called *hunan.localMI*.
+
+```{r}
+nf_wpt.localMI <- cbind(nga_wp,localMI_nf_wpt) %>%
+  rename(Pr.Ii = Pr.z....E.Ii..)
+```
+
+#### 4.6.2.2 Mapping both local Moran's I values and p-values for Functional Waterpoints
+
+For effective interpretation, it is better to plot both the local Moran's I values map and its corresponding p-values map next to each other.
+
+The code chunk below will be used to create such visualization.
+
+```{r}
+nf_wpt_localMI.map <- tm_shape(nf_wpt.localMI) +
+  tm_fill(col = "Ii", 
+          breaks=c(-Inf, 0, 3, 6, 9, Inf),
+          title = "Local Moran's I statistics") +
+  tm_borders(alpha = 0.5) +
+    tm_layout(main.title = "Local Moran's I Statistics for Non-Functional Waterpoints",
+              main.title.position = "center",
+              main.title.size = 0.7,
+              legend.height = 0.4,
+              legend.width = 0.3)
+
+nf_wpt_pvalue.map <- tm_shape(nf_wpt.localMI) +
+  tm_fill(col = "Pr.Ii", 
+          breaks=c(-Inf, 0.001, 0.01, 0.05, 0.1, Inf),
+          palette="-Blues", 
+          title = "Local Moran's I p-values") +
+  tm_borders(alpha = 0.5) +
+    tm_layout(main.title = "Local Moran's I P-values for Non-Functional Waterpoints",
+              main.title.position = "center",
+              main.title.size = 0.7,
+              legend.height = 0.4,
+              legend.width = 0.3)
+
+tmap_arrange(nf_wpt_localMI.map, nf_wpt_pvalue.map, asp=1, ncol=2)
+```
+
+Ii \> 0 indicates a grouping of similar values (higher or lower than average). Most areas have positive local moran's I statistics with 2 regions at the central area where there is high local moran's I statistics.
+
+Ii \< 0 indicates a combination of dissimilar values (e.g. high values surrounded by low values). Approximately 1/3 of areas have negative local moran's I statistics.
+
+## 4.7 Creating a LISA Cluster Map
+
+The LISA Cluster Map shows the significant locations color coded by type of spatial autocorrelation. The first step before we can generate the LISA cluster map is to plot the Moran scatterplot.
+
+### 4.7.1 Plotting Moran scatterplot
+
+The Moran scatterplot is an illustration of the relationship between the values of the chosen attribute at each location and the average value of the same attribute at neighboring locations.
+
+The code chunk below plots the Moran scatterplot of functional waterpoints by using [*moran.plot()*](https://r-spatial.github.io/spdep/reference/moran.plot.html) of **spdep**.
+
+```{r}
+nci_f_wpt <- moran.plot(nga_wp$`wpt functional`, rswm_q,
+                  labels=as.character(nga_wp$ADM2_CODE), 
+                  xlab="Functional_Waterpoints", 
+                  ylab="Spatially Lag functional_waterpoints")
+```
+
+Notice that the plot is split in 4 quadrants. The top right corner belongs to areas that have high numbers of functional waterpoints and are surrounded by other areas that are higher than the average number of functional waterpoints. This are the high-high locations.
+
+Most of the LGAs have low number of functional waterpoints is surrounded by other LGAs with lower than average number of functional waterpoints (low-low locations).
+
+The code chunk below plots the Moran scatterplot of non-functional waterpoints by using [*moran.plot()*](https://r-spatial.github.io/spdep/reference/moran.plot.html) of **spdep**.
+
+```{r}
+nci_nf_wpt <- moran.plot(nga_wp$`wpt non-functional`, rswm_q,
+                  labels=as.character(nga_wp$ADM2_CODE), 
+                  xlab="Non-functional_Waterpoints", 
+                  ylab="Spatially Lag Non-functional_Waterpoints")
+```
+
+Notice that the plot is split in 4 quadrants. The top right corner belongs to areas that have high numbers of non-functional waterpoints and are surrounded by other areas that are higher than the average number of non-functional waterpoints. This are the high-high locations.
+
+A good portion of LGA has low number of non-functionalwaterpoints is surrounded by other LGAs with lower than average number of non-functionalwaterpoints (low-low locations). Another good portion of LGA has low number of non-functional waterpoints is surrounded by other LGAs with higher than average number of non-functional waterpoints (high-low locations).
+
+### 4.7.2 Plotting Moran scatterplot with standardized variable
+
+First we will use *scale()* to centers and scales the variable. Here centering is done by subtracting the mean (omitting NAs) the corresponding columns, and scaling is done by dividing the (centered) variable by their standard deviations.
+
+The code chunk below does it for functional waterpoints
+
+```{r}
+nga_wp$Z.f_wpt <- scale(nga_wp$`wpt functional`) %>% 
+  as.vector
+```
+
+The code chunk below does it for non-functional waterpoints
+
+```{r}
+nga_wp$Z.nf_wpt <- scale(nga_wp$`wpt non-functional`) %>% 
+  as.vector 
+```
+
+The [*as.vector()*](https://www.rdocumentation.org/packages/pbdDMAT/versions/0.5-1/topics/as.vector) added to the end is to make sure that the data type we get out of this is a vector, that map neatly into out dataframe.
+
+Moran scatterplot is plotted again by using the code chunks below for functional waterpoints
+
+```{r}
+nci2.f_wpt <- moran.plot(nga_wp$Z.f_wpt, rswm_q,
+                   labels=as.character(nga_wp$ADM2_CODE),
+                   xlab="z-functional_Waterpoints", 
+                   ylab="Spatially Lag z-functional_Waterpoints")
+```
+
+Moran scatterplot is plotted again by using the code chunks below for non-functional waterpoints
+
+```{r}
+nci2.nf_wpt <- moran.plot(nga_wp$Z.nf_wpt, rswm_q,
+                   labels=as.character(nga_wp$ADM2_CODE),
+                   xlab="z-Non-functional_Waterpoints", 
+                   ylab="Spatially Lag z-Non-functional_Waterpoints")
+```
+
+### 4.7.3 Preparing LISA map classes for Functional Waterpoints
+
+The code chunks below show the steps to prepare a LISA cluster map.
+
+```{r}
+quadrant_f_wpt <- vector(mode="numeric",length=nrow(localMI_f_wpt))
+```
+
+Next, derives the spatially lagged variable of interest (i.e. functional_waterpoints) and centers the spatially lagged variable around its mean.
+
+```{r}
+nga_wp$lag_f_wpt <- lag.listw(rswm_q, nga_wp$`wpt functional`)
+DV_f_wpt <- nga_wp$lag_f_wpt - mean(nga_wp$lag_f_wpt)     
+```
+
+This is follow by centering the local Moran's around the mean.
+
+```{r}
+LM_I_f_wpt <- localMI_f_wpt[,1] - mean(localMI_f_wpt[,1])    
+```
+
+Next, we will set a statistical significance level for the local Moran.
+
+```{r}
+signif_wpt <- 0.05       
+```
+
+These four command lines define the low-low (1), low-high (2), high-low (3) and high-high (4) categories.
+
+```{r}
+quadrant_f_wpt[DV_f_wpt <0 & LM_I_f_wpt>0] <- 1
+quadrant_f_wpt[DV_f_wpt >0 & LM_I_f_wpt<0] <- 2
+quadrant_f_wpt[DV_f_wpt <0 & LM_I_f_wpt<0] <- 3  
+quadrant_f_wpt[DV_f_wpt >0 & LM_I_f_wpt>0] <- 4      
+```
+
+Lastly, places non-significant Moran in the category 0.
+
+```{r}
+quadrant_f_wpt[localMI_f_wpt[,5] > signif_wpt] <- 0
+```
+
+### 4.7.4 Plotting LISA map for Functional Waterpoints
+
+Now, we can build the LISA map by using the code chunks below.
+
+For effective interpretation, it is better to plot both the local Moran's I values map and its functional waterpoints thematic map next to each other.
+
+The code chunk below will be used to create such visualization for functional waterpoints
+
+```{r}
+f_wpt_plot <- wP_functional # previous plotted in Thematic Mapping
+
+f_wpt.localMI$quadrant <- quadrant_f_wpt
+colors <- c("#ffffff", "#2c7bb6", "#abd9e9", "#fdae61", "#d7191c")
+clusters <- c("insignificant", "low-low", "low-high", "high-low", "high-high")
+
+tm_shape(f_wpt.localMI) +
+  tm_fill(col = "quadrant", 
+          style = "cat", 
+          palette = colors[c(sort(unique(quadrant_f_wpt)))+1], 
+          labels = clusters[c(sort(unique(quadrant_f_wpt)))+1],
+          popup.vars = c("")) +
+  tm_view(set.zoom.limits = c(11,17)) +
+  tm_borders(alpha=0.5)
+
+LISAmap_f_wpt <- tm_shape(f_wpt.localMI) +
+  tm_fill(col = "quadrant", 
+          style = "cat", 
+          palette = colors[c(sort(unique(quadrant_f_wpt)))+1], 
+          labels = clusters[c(sort(unique(quadrant_f_wpt)))+1],
+          popup.vars = c("")) +
+  tm_view(set.zoom.limits = c(11,17)) +
+  tm_borders(alpha=0.5)
+
+tmap_arrange(f_wpt_plot, LISAmap_f_wpt, 
+             asp=1, ncol=2)
+```
+
+In central northern regions of Nigeria, we can find high number of functional waterpoints surrounded by areas with higher than average number of functional waterpoints (red colored areas).
+
+### 4.7.5 Preparing LISA map classes for Non-functional Waterpoints
+
+The code chunks below show the steps to prepare a LISA cluster map.
+
+```{r}
+quadrant_nf_wpt <- vector(mode="numeric",length=nrow(localMI_nf_wpt))
+```
+
+Next, derives the spatially lagged variable of interest (i.e. non-functional_waterpoints) and centers the spatially lagged variable around its mean.
+
+```{r}
+nga_wp$lag_nf_wpt <- lag.listw(rswm_q, nga_wp$`wpt non-functional`)
+DV_nf_wpt <- nga_wp$lag_nf_wpt - mean(nga_wp$lag_nf_wpt)     
+```
+
+This is follow by centering the local Moran's around the mean.
+
+```{r}
+LM_I_nf_wpt <- localMI_nf_wpt[,1] - mean(localMI_nf_wpt[,1])    
+```
+
+Next, we will set a statistical significance level for the local Moran.
+
+```{r}
+signif_wpt <- 0.05       
+```
+
+These four command lines define the low-low (1), low-high (2), high-low (3) and high-high (4) categories.
+
+```{r}
+quadrant_nf_wpt[DV_nf_wpt <0 & LM_I_nf_wpt>0] <- 1
+quadrant_nf_wpt[DV_nf_wpt >0 & LM_I_nf_wpt<0] <- 2
+quadrant_nf_wpt[DV_nf_wpt <0 & LM_I_nf_wpt<0] <- 3  
+quadrant_nf_wpt[DV_nf_wpt >0 & LM_I_nf_wpt>0] <- 4      
+```
+
+Lastly, places non-significant Moran in the category 0.
+
+```{r}
+quadrant_nf_wpt[localMI_nf_wpt[,5] > signif_wpt] <- 0
+```
+
+### 4.7.6 Plotting LISA map for Non-functional Waterpoints
+
+Now, we can build the LISA map by using the code chunks below.
+
+For effective interpretation, it is better to plot both the local Moran's I values map and its functional waterpoints thematic map next to each other.
+
+The code chunk below will be used to create such visualization for functional waterpoints
+
+```{r}
+nf_wpt_plot <- wp_nonfunctional # previous plotted in Thematic Mapping
+
+nf_wpt.localMI$quadrant <- quadrant_nf_wpt
+colors <- c("#ffffff", "#2c7bb6", "#abd9e9", "#fdae61", "#d7191c")
+clusters <- c("insignificant", "low-low", "low-high", "high-low", "high-high")
+
+tm_shape(nf_wpt.localMI) +
+  tm_fill(col = "quadrant", 
+          style = "cat", 
+          palette = colors[c(sort(unique(quadrant_nf_wpt)))+1], 
+          labels = clusters[c(sort(unique(quadrant_nf_wpt)))+1],
+          popup.vars = c("")) +
+  tm_view(set.zoom.limits = c(11,17)) +
+  tm_borders(alpha=0.5)
+
+LISAmap_nf_wpt <- tm_shape(nf_wpt.localMI) +
+  tm_fill(col = "quadrant", 
+          style = "cat", 
+          palette = colors[c(sort(unique(quadrant_nf_wpt)))+1], 
+          labels = clusters[c(sort(unique(quadrant_nf_wpt)))+1],
+          popup.vars = c("")) +
+  tm_view(set.zoom.limits = c(11,17)) +
+  tm_borders(alpha=0.5)
+
+tmap_arrange(nf_wpt_plot, LISAmap_nf_wpt, 
+             asp=1, ncol=2)
+```
+
+In several areas of Nigeria, we can find high number of non-functional waterpoints surrounded by areas with higher than average number of non-functional waterpoints (red colored areas)
+
+## 4.8 Hot Spot and Cold Spot Area Analysis
+
+Beside detecting cluster and outliers, localised spatial statistics can be also used to detect hot spot and/or cold spot areas.
+
+The term 'hot spot' has been used generically across disciplines to describe a region or value that is higher relative to its surroundings (Lepers et al 2005, Aben et al 2012, Isobe et al 2015).
+
+### 4.8.1 Getis and Ord's G-Statistics
+
+An alternative spatial statistics to detect spatial anomalies is the Getis and Ord's G-statistics (Getis and Ord, 1972; Ord and Getis, 1995). It looks at neighbors within a defined proximity to identify where either high or low values clutser spatially. Here, statistically significant hot-spots are recognised as areas of high values where other areas within a neighborhood range also share high values too.
+
+The analysis consists of three steps:
+
+-   Deriving spatial weight matrix
+
+-   Computing Gi statistics
+
+-   Mapping Gi statistics
+
+### 4.8.2 Deriving distance-based weight matrix
+
+First, we need to define a new set of neighbors. Whist the spatial autocorrelation considered units which shared borders, for Getis-Ord we are defining neighbors based on distance.
+
+There are two type of distance-based proximity matrix, they are:
+
+-   fixed distance weight matrix; and
+
+-   adaptive distance weight matrix.
+
+Fixed distance is chosen as there is a large variation in polygon size (very large polygons at the edge of the study area and very small polygons at the center of the study area.
+
+#### 4.8.2.1 Deriving the centroid
+
+We will need points to associate with each polygon before we can make our connectivity graph. It will be a little more complicated than just running *st_centroid()* on the sf object: **us.bound**. We need the coordinates in a separate data frame for this to work. To do this we will use a mapping function. The mapping function applies a given function to each element of a vector and returns a vector of the same length. Our input vector will be the geometry column of us.bound. Our function will be *st_centroid()*. We will be using map_dbl variation of map from the purrr package. For more documentation, check out map documentation.
+
+To get our longitude values we map the *st_centroid()* function over the geometry column of us.bound and access the longitude value through double bracket notation \[\[\]\] and 1. This allows us to get only the longitude, which is the first value in each centroid. A fresh read is required as nga_wp geometry has been changed prior.
+
+```{r}
+nga_wp_ll <- read_rds("geodata/nga_wp.rds")
+longitude <- map_dbl(nga_wp_ll$geometry, ~st_centroid(.x)[[1]])
+```
+
+We do the same for latitude with one key difference. We access the second value per each centroid with \[\[2\]\].
+
+```{r}
+latitude <- map_dbl(nga_wp_ll$geometry, ~st_centroid(.x)[[2]])
+```
+
+Now that we have latitude and longitude, we use cbind to put longitude and latitude into the same object.
+
+```{r}
+coords <- cbind(longitude, latitude)
+```
+
+#### 4.8.2.2 Determine the cut-off distance
+
+Firstly, we need to determine the upper limit for distance band by using the steps below:
+
+-   Return a matrix with the indices of points belonging to the set of the k nearest neighbors of each other by using [*knearneigh()*](https://r-spatial.github.io/spdep/reference/knearneigh.html) of **spdep**.
+
+-   Convert the knn object returned by *knearneigh()* into a neighbors list of class nb with a list of integer vectors containing neighbor region number ids by using [*knn2nb()*](https://r-spatial.github.io/spdep/reference/knn2nb.html).
+
+-   Return the length of neighbor relationship edges by using [*nbdists()*](https://r-spatial.github.io/spdep/reference/nbdists.html) of **spdep**. The function returns in the units of the coordinates if the coordinates are projected, in km otherwise.
+
+-   Remove the list structure of the returned object by using [**unlist()**](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/unlist).
+
+```{r}
+k1 <- knn2nb(knearneigh(coords))
+k1dists <- unlist(nbdists(k1, coords, longlat = TRUE))
+summary(k1dists)
+```
+
+The summary report shows that the largest first nearest neighbor distance is approximate 72km, so using this as the upper threshold gives certainty that all units will have at least one neighbor.
+
+#### 4.8.2.3 Computing fixed distance weight matrix
+
+Now, we will compute the distance weight matrix by using [*dnearneigh()*](https://r-spatial.github.io/spdep/reference/dnearneigh.html) as shown in the code chunk below.
+
+```{r}
+wm_d72 <- dnearneigh(coords, 0, 72, longlat = TRUE)
+wm_d72
+```
+
+Next, *nb2listw()* is used to convert the nb object into spatial weights object.
+
+```{r}
+wm72_lw <- nb2listw(wm_d72, style = 'B')
+summary(wm72_lw)
+```
+
+The output spatial weights object is called `wm72_lw`.
+
+## 4.9 Computing Gi statistics
+
+### 4.9.1 Gi statistics using fixed distance for Functional Waterpoints
+
+The code chunk below computes the Gi values for each of the LGAs for functional waterpoints
+
+```{r}
+fips <- order(nga_wp$ADM2_CODE)
+gi.fixed_f_wpt <- localG(nga_wp$`wpt functional`, wm72_lw)
+gi.fixed_f_wpt
+```
+
+The output of localG() is a vector of G or Gstar values, with attributes "gstari" set to TRUE or FALSE, "call" set to the function call, and class "localG".
+
+The Gi statistics is represented as a Z-score. Greater values represent a greater intensity of clustering and the direction (positive or negative) indicates high or low clusters.
+
+Next, we will join the Gi values to their corresponding nga_wp sf data frame by using the code chunk below.
+
+```{r}
+f_wpt.gi <- cbind(nga_wp, as.matrix(gi.fixed_f_wpt)) %>%
+  rename(gstat_fixed = as.matrix.gi.fixed_f_wpt.)
+```
+
+In fact, the code chunk above performs three tasks. First, it convert the output vector (i.e. gi.fixed_f\_wpt) into r matrix object by using *as.matrix()*. Next, *cbind()* is used to join nga_wp\@data and gi.fixed_f\_wpt matrix to produce a new SpatialPolygonDataFrame called f_wpt.gi. Lastly, the field name of the gi values is renamed to *gstat_fixed* by using *rename()*.
+
+### 4.9.2 Gi statistics using fixed distance for Non-functional Waterpoints
+
+The code chunk below computes the Gi values for each of the LGAs for non-functional waterpoints
+
+```{r}
+fips <- order(nga_wp$ADM2_CODE)
+gi.fixed_nf_wpt <- localG(nga_wp$`wpt non-functional`, wm72_lw)
+gi.fixed_nf_wpt
+```
+
+The output of localG() is a vector of G or Gstar values, with attributes "gstari" set to TRUE or FALSE, "call" set to the function call, and class "localG".
+
+The Gi statistics is represented as a Z-score. Greater values represent a greater intensity of clustering and the direction (positive or negative) indicates high or low clusters.
+
+Next, we will join the Gi values to their corresponding nga_wp sf data frame by using the code chunk below.
+
+```{r}
+nf_wpt.gi <- cbind(nga_wp, as.matrix(gi.fixed_nf_wpt)) %>%
+  rename(gstat_fixed = as.matrix.gi.fixed_nf_wpt.)
+```
+
+In fact, the code chunk above performs three tasks. First, it convert the output vector (i.e. *gi.fixed*) into r matrix object by using *as.matrix()*. Next, *cbind()* is used to join nga_wp\@data and *gi.fixed* matrix to produce a new SpatialPolygonDataFrame called nf_wpt.gi. Lastly, the field name of the gi values is renamed to *gstat_fixed* by using *rename()*.
+
+### 4.9.2 Mapping Gi values with fixed distance weights
+
+The code chunk below shows the functions used to map the Gi values derived using fixed distance weight matrix for functional waterpoint.
+
+```{r}
+f_wpt_plot <- wP_functional # plotted prior
+
+Gimap <-tm_shape(f_wpt.gi) +
+  tm_fill(col = "gstat_fixed",
+          style = "equal",
+          palette="-RdBu",
+          title = "local Gi") +
+  tm_borders(alpha = 0.5)
+
+tmap_arrange(f_wpt_plot, Gimap, asp=1, ncol=2)
+```
+
+```{r}
+f_wpt_plot <- wP_functional # plotted prior
+
+Gimap <-tm_shape(f_wpt.gi) +
+  tm_fill(col = "gstat_fixed",
+          style = "equal",
+          palette="-RdBu",
+          title = "local Gi") +
+  tm_borders(alpha = 0.5)
+
+tmap_arrange(f_wpt_plot, Gimap, asp=1, ncol=2)
+```
+
+The hot spots for functional waterpoints are in the northern central region of Nigeria. significant and positive if location i is associated with relatively high values in the surrounding locations.
+
+The cold spots for functional waterpoints are in the southern central region of Nigeria. significant and negative if location i is associated with relatively low values in surrounding locations.
+
+The code chunk below shows the functions used to map the Gi values derived using fixed distance weight matrix for non-functional waterpoint.
+
+```{r}
+nf_wpt_plot <- wp_nonfunctional # plotted prior
+
+Gimap <-tm_shape(nf_wpt.gi) +
+  tm_fill(col = "gstat_fixed",
+          style = "equal",
+          palette="-RdBu",
+          title = "local Gi") +
+  tm_borders(alpha = 0.5)
+
+tmap_arrange(nf_wpt_plot, Gimap, asp=1, ncol=2)
+```
+
+The hot spots for non-functional waterpoints are in the central eastern and central region of Nigeria. significant and positive if location i is associated with relatively high values in the surrounding locations.
+
+The cold spots for non-functional waterpoints are in the southern central region of Nigeria. significant and negative if location i is associated with relatively low values in surrounding locations.
