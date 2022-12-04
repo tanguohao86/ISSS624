@@ -1,5 +1,5 @@
 ---
-title: "Hands-on_Ex4 - 5  Geographical Segmentation with Spatially Constrained Clustering Techniques"
+title: "Hands-on_Ex4 - 5 Geographical Segmentation with Spatially Constrained Clustering Techniques"
 date: "`r Sys.Date()`"
 editor: visual
 ---
@@ -739,7 +739,7 @@ class(shan.mst)
 dim(shan.mst)
 ```
 
-Note that the dimension is 54 and not 55. This is because the minimum spanning tree consists on n-1 edges (links) in order to traverse all the nodes.
+Note that the dimension is 54 and not 55. This is because the minimum spanning tree consists on n-1 edges (links) in order to traverse all the nodes. n is the number of polygons
 
 We can display the content of *shan.mst* by using *head()* as shown in the code chunk below.
 
@@ -780,7 +780,7 @@ str(clust6)
 
 The most interesting component of this list structure is the groups vector containing the labels of the cluster to which each observation belongs (as before, the label itself is arbitary). This is followed by a detailed summary for each of the clusters in the edges.groups list. Sum of squares measures are given as ssto for the total and ssw to show the effect of each of the cuts on the overall criterion.
 
-We can check the cluster assignment by using the conde chunk below.
+We can check the cluster assignment by using the code chunk below.
 
 ```{r}
 ccs6 <- clust6$groups
@@ -879,7 +879,7 @@ distmat <- as.dist(dist)
 
 Notice that `as.dist()` is used to convert the data frame into matrix.
 
-Next, `choicealpha()` will be used to determine a suitable value for the mixing parameter alpha as shown in the code chunk below. \# to balance attribute space vs spatial space. alpha value is from 0 to 1 (0 -attribute homogeneity , 1-spatial homogeneity), 2 one is the normalized one. use normalized if you distribution is skewed.
+Next, `choicealpha()` will be used to determine a suitable value for the mixing parameter alpha as shown in the code chunk below. \# to balance attribute space vs spatial space. alpha value is from 0 to 1 (0 -attribute homogeneity , 1-spatial homogeneity), 2nd chart is the normalized one. use normalized if your distribution is skewed.
 
 ```{r}
 cr <- choicealpha(proxmat, distmat, range.alpha = seq(0, 1, 0.1), K=6, graph = TRUE)
