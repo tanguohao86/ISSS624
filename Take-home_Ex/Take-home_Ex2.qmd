@@ -58,7 +58,7 @@ The R packages needed for this exercise are as follows:
 
 -   Multivariate data visualisation and analysis
 
-    -   **coorplot**, **ggpubr**, and **heatmaply**
+    -   **coorplot**, **ggpubr**, **heatmaply**, **palmerpenguins**, and **patchwork**
 
 -   Cluster analysis
 
@@ -75,7 +75,7 @@ The code chunks below installs and launches these R packages into R environment.
 ```{r}
 pacman::p_load(sf, spdep, tmap, tidyverse, tmap, funModeling, rgdal, ClustGeo,
                ggpubr, cluster, factoextra, NbClust, heatmaply,
-               corrplot, psych, GGally, palmerpenguins, patchwork, shinyjs)
+               corrplot, psych, GGally, palmerpenguins, patchwork)
 ```
 
 Note: With **tidyverse**, we do not have to install **readr**, **ggplot2** and **dplyr** packages separately. In fact, **tidyverse** also installs other very useful R packages such as **tidyr**.
