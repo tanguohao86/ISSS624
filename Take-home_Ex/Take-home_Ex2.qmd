@@ -1,12 +1,12 @@
 ---
-title: "Take-home Exercise 2 - Take-home Exercise 2: Regionalisation of Multivariate Water Point Attributes with Non-spatially Constrained and Spatially Constrained Clustering Methods"
+title: "Take-home Exercise 2: Regionlization of Multivariate Water Point Attributes with Non-spatially Constrained and Spatially Constrained Clustering Methods"
 date: "`r Sys.Date()`"
 editor: visual
 ---
 
 ## 1.1 Setting the Scene
 
-The process of creating regions is called [regionalisation](https://www.researchgate.net/publication/28153673_Supervised_Regionalization_Methods_A_Survey/link/0fcfd5094046b13d35000000/download). A regionalisation is a special kind of clustering where the objective is to group observations which are similar in their statistical attributes, but also in their spatial location. In this sense, regionalization embeds the same logic as standard clustering techniques, but also applies a series of geographical constraints. Often, these constraints relate to connectivity: two candidates can only be grouped together in the same region if there exists a path from one member to another member that never leaves the region. These paths often model the spatial relationships in the data, such as contiguity or proximity. However, connectivity does not always need to hold for all regions, and in certain contexts it makes sense to relax connectivity or to impose different types of geographic constraints.
+The process of creating regions is called [regionalization](https://www.researchgate.net/publication/28153673_Supervised_Regionalization_Methods_A_Survey/link/0fcfd5094046b13d35000000/download). A regionlization is a special kind of clustering where the objective is to group observations which are similar in their statistical attributes, but also in their spatial location. In this sense, regionalization embeds the same logic as standard clustering techniques, but also applies a series of geographical constraints. Often, these constraints relate to connectivity: two candidates can only be grouped together in the same region if there exists a path from one member to another member that never leaves the region. These paths often model the spatial relationships in the data, such as contiguity or proximity. However, connectivity does not always need to hold for all regions, and in certain contexts it makes sense to relax connectivity or to impose different types of geographic constraints.
 
 ### 1.1.1 The Data
 
@@ -20,21 +20,33 @@ Nigeria Level-2 Administrative Boundary (also known as Local Government Area) po
 
 ## 1.2 Objectives
 
-In this take-home exercise you are required to regionalise Nigeria by using, but not limited to the following measures:
+In this take-home exercise you are required to regionalize Nigeria by using, but not limited to the following measures:
 
--   Total number of functional water points
+-   Total number of functional water points in LGA
 
--   Total number of nonfunctional water points
+-   Total number of nonfunctional water points in LGA
 
 -   Percentage of functional water points
 
+    -   equates to "number of functional water points in LGA / Total number of functional water points in LGA"
+
 -   Percentage of non-functional water points
+
+    -   equates to "number of nonfunctional water points in LGA" / "Total number of nonfunctional water points in LGA"
 
 -   Percentage of main water point technology (i.e. Hand Pump)
 
+    -   equates to "number of water points in LGA using Hand Pump" / "Total number of functional water points in LGA"
+
 -   Percentage of usage capacity (i.e. \< 1000, \>=1000)
 
+    -   Percentage of usage capacity (\< 1000) equates to "number of water points in LGA with usage capacity \< 1000" / "Total number of functional water points in LGA"
+
+    -   Percentage of usage capacity (\>= 1000) equates to "number of water points in LGA with usage capacity \>= 1000" / "Total number of functional water points in LGA"
+
 -   Percentage of rural water points
+
+    -   "Percentage of is_urban == False in LGA" / "Total number of functional water points in LGA"
 
 The areas within a region must be geographically connected (the spatial contiguity constraint).
 
@@ -95,12 +107,8 @@ First, we are going to import the water point geospatial data (i.e. geo_export)
 ```{r eval=FALSE}
 wp = st_read(dsn = 'geodata',
              layer = 'geo_export',
-             crs = 4326) %>% # crs = 4326
+             crs = 4326) %>%
     filter(clean_coun == 'Nigeria')
-```
-
-```{r eval=FALSE}
-wp
 ```
 
 Things to learn from the code chunk above:
@@ -108,6 +116,8 @@ Things to learn from the code chunk above:
 -   `st_read()` of **sf** package is used to import *geo_export* shapefile into R environment and save the imported geospatial data into simple feature data table.
 
 -   `filter()` of dplyr package is used to extract water point records of Nigeria.
+
+-   crs is set to 4326 which will be the same for nga in 1.3.2
 
 > Be warned: Avoid performing transformation if you plan to use `st_intersects()` of **sf** package in the later stage of the geoprocessing. This is because `st_intersects()` only works correctly if the geospatial data are in geographic coordinate system (i.e. wgs84)
 
@@ -134,30 +144,35 @@ nga = st_read(dsn = 'geodata',
 Thing to learn from the code chunk above.
 
 -   `st_read()` of **sf** package is used to import nga_polnda_adm2_1m_salb shapefile into R environment and save the imported geospatial data into simple feature data table.
-
-Sorting Nigeria LGA observation by column ADM2_CODE before comparing numbers of unique observations.
-
-## 1.4 Data Wrangling
-
-### 1.4.1 Sorting and comparing number of observations
-
-```{r eval=FALSE}
-nga <- (nga[order(nga$ADM2_CODE), ])
-```
-
-```{r eval=FALSE}
-uniq_nga <- unique(nga, by=nga$ADM2_CODE)
-```
+-   crs is set to 4326 which is the same for wp_nga
 
 ```{r eval=FALSE}
 st_crs(nga)
 ```
 
-nga has the same number of observations as uniq_nga. Hence there is no duplicate observations.
+## 1.4 Data Wrangling
+
+### 1.4.1 Sorting and comparing number of observations
+
+This section involves sorting Nigeria LGA observation by column ADM2_CODE before comparing numbers of unique observations.
+
+The code chunk below sort the dataset according to field `ADM2_CODE`
+
+```{r eval=FALSE}
+nga <- (nga[order(nga$ADM2_CODE), ])
+```
+
+The code chunk below extract the unique rows with reference to field `ADM2_CODE`
+
+```{r eval=FALSE}
+uniq_nga <- unique(nga, by=nga$ADM2_CODE)
+```
+
+After comparison, nga has 773 observations of 13 variables which is the same as as uniq_nga. Hence, we can conclude that there is no duplicate observations.
 
 ### 1.4.2 Re-coding NA values into string
 
-In the code chunk below, `replace_na()` is used to recode all the *NA* values in *status_cle* field into *Unknown*.
+In the code chunk below, `replace_na()` is used to recode all the *NA* values in *status_cle* field into *Unknown* so that we can so not need to omit rows with NA in the selected fields (`status_cle` and `X_water_tec`) and remove the need to create another subset of data solely comprising of "completed" data (rows without NA).
 
 ```{r eval=FALSE}
 wp_nga <- read_rds("geodata/wp_nga_ex2.rds") %>%
@@ -167,7 +182,7 @@ wp_nga <- read_rds("geodata/wp_nga_ex2.rds") %>%
 
 ### 1.4.3 EDA
 
-In the code chunk below, `freq()` of **funModeling** package is used to display the distribution of *status_cle* field in *wp_nga*.
+In the code chunk below, `freq()` of **funModeling** package is used to display the distribution of *status_cle* field in *wp_nga* quickly.
 
 ```{r eval=FALSE}
 freq(data=wp_nga, 
@@ -185,7 +200,7 @@ In this section, we will extract the water point records by using classes in *st
 
 ### 1.5.1 Extracting functional water points
 
-In the code chunk below, `filter()` of dplyr is used to select functional water points.
+In the code chunk below, `filter()` of dplyr is used to select functional water points. You will be able to understand what are considered as functional wpt in this take-home exercise.
 
 ```{r eval=FALSE}
 wpt_func <- wp_nga %>%
@@ -202,7 +217,7 @@ freq(data=wpt_func,
 
 ### 1.5.2 Extracting non-functional water points
 
-In the code chunk below, `filter()` of dplyr is used to select non-functional water points.
+In the code chunk below, `filter()` of dplyr is used to select non-functional water points. You will be able to understand what are considered as nonfunctional wpt in this take-home exercise.
 
 ```{r eval=FALSE}
 wpt_nonfunc <- wp_nga %>%
@@ -230,6 +245,8 @@ wpt_unknown <- wp_nga %>%
 
 ### 1.5.4 Extracting water points using Hand Pump
 
+We extract the rows with "Hand Pump" under the field `X_water_tec`
+
 ```{r eval=FALSE}
 wpt_handpump <- wp_nga %>%
   filter(X_water_tec == "Hand Pump")
@@ -237,12 +254,16 @@ wpt_handpump <- wp_nga %>%
 
 ### 1.5.5 Extracting Rural water points
 
+We extract the rows with "False" under the field `is_urban`
+
 ```{r eval=FALSE}
 wpt_rural <- wp_nga %>%
   filter(is_urban == "False")
 ```
 
-### 1.5.6 Extracting water points Usage \< 1000
+### 1.5.6 Extracting water points Usage Capacity \< 1000
+
+We first set the field `usage_cap` to integer. Subsequently, we extract rows where usage cap \< 1000.
 
 ```{r eval=FALSE}
 wp_nga$usage_cap <- as.integer(wp_nga$usage_cap)  
@@ -250,7 +271,9 @@ wpt_usecapless1k <- wp_nga %>%
   filter(usage_cap < 1000)
 ```
 
-### 1.5.7 Extracting water points Usage \>= 1000
+### 1.5.7 Extracting water points Usage Capacity \>= 1000
+
+As the field usage_cap is already in integer, we can proceed to extract rows where usage cap \>= 1000.
 
 ```{r eval=FALSE}
 wpt_usecapequalormore1k <- wp_nga %>%
@@ -258,6 +281,10 @@ wpt_usecapequalormore1k <- wp_nga %>%
 ```
 
 ### 1.5.8 Performing Point-in-Polygon Count
+
+`st_intersects()` return a list where the list contains the indexes of the point geometry that is found inside the polygon geometry.
+
+`lengths()` returns the number of element inside the list which represent the number of water point within the polygon
 
 ```{r eval=FALSE}
 nga_wp <- nga %>% 
@@ -285,7 +312,19 @@ nga_wp <- nga %>%
 
 The unit of measurement of the values are number of household. Using these values directly will be bias by the underlying total number of total wpt. In general, the LGAs with relatively higher total number of water points will also have higher number of wpt functional, wpt rural, wpt hand pump and etc.
 
-In order to overcome this problem, we will derive the percentage of each variable by using the code chunk below.
+In order to overcome this problem, we will derive the percentage of each variable by using the code chunk below. The definitions are listed below:
+
+-   Percentage of functional water points `pct functional` equates to "number of functional water points in LGA / Total number of functional water points in LGA"
+
+-   Percentage of non-functional water points `pct non-functional` equates to "number of nonfunctional water points in LGA" / "Total number of nonfunctional water points in LGA"
+
+-   Percentage of main water point technology (i.e. Hand Pump) `pct hand pump` equates to "number of water points in LGA using Hand Pump" / "Total number of functional water points in LGA"
+
+-   Percentage of usage capacity (\< 1000) `pct cap < 1000` equates to "number of water points in LGA with usage capacity \< 1000" / "Total number of functional water points in LGA"
+
+-   Percentage of usage capacity (\>= 1000) `pct cap >= 1000` equates to "number of water points in LGA with usage capacity \>= 1000" / "Total number of functional water points in LGA"
+
+-   Percentage of rural water points `pct rural` "number of is_urban == False in LGA" / "Total number of functional water points in LGA"
 
 ```{r eval=FALSE}
 nga_wp <- nga_wp %>%
@@ -313,10 +352,13 @@ Before you end this section, please remember to delete away all the raw data. No
 nga_wp <- read_rds("geodata/wp_nga_ex2.rds")
 ```
 
+The code chunk below selects the required fields and assign them to `nga_wp_Ex2`
+
 ```{r}
-# dropped_columns <- c(`wpt rural`,`wpt cap < 1000`,`wpt hand pump`,`CNTRY_CODE`,`CNTRY_NAME`,`ADM1_NAME`,`ADM1_CODE`,`ADM2_NAME`,`HRname`,`HRpcode`,`HRparent`,`Shape_Leng`,`ADM2_New`)
 nga_wp_Ex2 <- select(nga_wp, -c(`wpt rural`,`wpt cap < 1000`,`wpt hand pump`,`CNTRY_CODE`,`CNTRY_NAME`,`ADM1_NAME`,`ADM1_CODE`,`ADM2_NAME`,`HRname`,`HRpcode`,`HRparent`,`Shape_Leng`,`ADM2_New`,`Shape_Area`,`wpt unknown`,`wpt cap >= 1000`))
 ```
+
+All NA in data is replaced with 0 as to prevent instances where division by 0 occurs.
 
 ```{r}
 nga_wp_Ex2[is.na(nga_wp_Ex2)] = 0
@@ -330,7 +372,7 @@ summary(nga_wp_Ex2)
 
 ### 2.1.1 EDA using statistical graphics
 
-Setting theme...
+The following code chunk sets the theme for aesthetic purposes
 
 ```{r}
 theme_set(theme_bw(16))
@@ -352,7 +394,7 @@ wpt_func_hist <-ggplot(data=nga_wp_Ex2,
     theme(plot.title=element_text(hjust=0.5))
 ```
 
-We also use [shapiro.test](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/shapiro.test) to test for normality in the code chunk below.
+We also use [shapiro.test](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/shapiro.test) to test for normality in the code chunk below. Should the p-value is greater than 0.05, the data is normal. If it is below 0.05, the data deviate from a normal distribution.
 
 ```{r}
 shapiro.test(nga_wp_Ex2$`wpt functional`)
@@ -466,16 +508,18 @@ As observed, not all variables have a normal distribution. Hence we are unable t
 
 To have a quick look at the distribution of total water points in Nigeria vs percentage of water points using Hand pump at Local Government Area level, a choropleth map will be prepared.
 
-The code chunks below are used to prepare the choropleth by using codes in **tmap** package.
+The code chunks below are used to create an interactive choropleth by using codes in **tmap** package.
 
 ```{r}
+tmap_mode("view")
 total_wpt_plot <- tm_shape(nga_wp_Ex2) +
     tm_fill("total wpt",
             style="jenks",
             title = "total wpt") +
     tm_legend(legend.position = c("right", "bottom")) +
     tm_borders("black", lwd = 0.3, alpha = 0.3) +
-    tm_layout(outer.margins=0, asp=0)
+    tm_layout(outer.margins=0, asp=0) +
+    tm_view(set.zoom.limits = c(5,10))
 
 pct_handpump_plot <- tm_shape(nga_wp_Ex2) +
     tm_fill("pct hand pump",
@@ -483,9 +527,16 @@ pct_handpump_plot <- tm_shape(nga_wp_Ex2) +
             title = "pct hand pump") +
     tm_legend(legend.position = c("right", "bottom")) +
     tm_borders("black", lwd = 0.3, alpha = 0.3) +
-    tm_layout(outer.margins=0, asp=0)
+    tm_layout(outer.margins=0, asp=0) +
+    tm_view(set.zoom.limits = c(5,10))
 
-tmap_arrange (total_wpt_plot, pct_handpump_plot, asp = 1, ncol = 2)
+tmap_arrange (total_wpt_plot, pct_handpump_plot, asp = 1, ncol = 2, sync = TRUE)
+```
+
+tmap_mode is set back to "plot" mode.
+
+```{r}
+tmap_mode("plot")
 ```
 
 ## 3.1 Correlation Analysis
@@ -885,7 +936,7 @@ ccs3 <- clust3$groups
 ccs3
 ```
 
-We can find out how many observations are in each cluster by means of the table command. Parenthetially, we can also find this as the dimension of each vector in the lists contained in edges.groups. For example, the first list has node with dimension 12, which is also the number of observations in the first cluster.
+We can find out how many observations are in each cluster by means of the table command. Parenthetially, we can also find this as the dimension of each vector in the lists contained in edges.groups. For example, the first list has node with dimension 207, which is also the number of observations in the first cluster.
 
 ```{r}
 table(ccs3)
@@ -908,10 +959,12 @@ plot(clust3,
 The code chunk below is used to plot the newly derived clusters by using SKATER method.
 
 ```{r}
+tmap_mode("view")
 groups_mat <- as.matrix(clust3$groups)
 nga_wp_Ex2_spatialcluster <- cbind(nga_wp_Ex2_cluster, as.factor(groups_mat)) %>%
   rename(`SP_CLUSTER`=`as.factor.groups_mat.`)
-qtm(nga_wp_Ex2_spatialcluster, "SP_CLUSTER")
+qtm(nga_wp_Ex2_spatialcluster, "SP_CLUSTER") +
+        tm_view(set.zoom.limits = c(5,10))
 ```
 
 ## 5.3 Spatially Constrained Clustering: ClustGeo Method
@@ -976,7 +1029,7 @@ Next, `choicealpha()` will be used to determine a suitable value for the mixing 
 cr <- choicealpha(proxmat, distmat, range.alpha = seq(0, 1, 0.1), K=3, graph = )
 ```
 
-With reference to the graphs above, alpha = 0.2 will be used as shown in the code chunk below.
+With reference to the graphs above, alpha = 0.2 will be used as shown in the code chunk below. Reason for choosing is that we do not sacrifice too much variables homogeneity for spatial homogeneity.
 
 ```{r}
 clustG <- hclustgeo(proxmat, distmat, alpha = 0.2)
@@ -1038,7 +1091,7 @@ ggparcoord_nga + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust
 
 ```
 
-The parallel coordinate plot above reveals that LGAs in Cluster 3's while having the highest number of wpt functional also have the highest pct wpt functional.
+The parallel coordinate plot above reveals that LGAs in Cluster 3's while having the highest average number of wpt functional also have the highest average pct wpt functional. Cluster 3 has the highest average "pct cap \< 1000", this is inline with them having the highest average "pct hand pump". Hand pump usually have smaller capacity and have less components leading to lesser failures as compared to mechanical pump.
 
 Note that the `scale` argument of `ggparcoor()` provide several methods to scale the clustering variables. They are:
 
