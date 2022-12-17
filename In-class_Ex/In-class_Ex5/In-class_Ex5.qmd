@@ -1,0 +1,383 @@
+---
+title: "In-class_Ex5: Modeling the Spatial Variation of the Explanatory Factors of Water Point Status using Geographically Weighted Logistic Regression"
+format: html
+editor: visual
+---
+
+## 1.1 Setting the scene
+
+-   To build an explanatory model to discover factor affecting water point status in Osun State, Nigeria
+
+-   Study area: Osun State, Nigeria
+
+-   Data sets:
+
+    -   Osun.rds, contains LGAs boundaries of Osun State. It is in sf polygon data frame.
+
+    -   Osum_wp_sf_rds, contained water points within Osun State. It is in sf point data frame.
+
+### 1.1.1 Model Variables
+
+-   Dependent variable: Water point status (i.e. functional/non-functional)
+
+-   Independent variables:
+
+    -   distance_to_primary_road
+
+    -   distance_to_secondary_road
+
+    -   distance_to_tertiary_road
+
+    -   distance_to_city
+
+    -   distance_to_town
+
+    -   water_point_population
+
+    -   local_population_1km,
+
+    -   usage_capacity
+
+    -   is_urban
+
+    -   water_source_clean
+
+    -   last 3 are categorical
+
+### 1.1.2 Getting Started
+
+The R packages required for this exercise are as follows:
+
+-   Spatial data handling
+
+    -   **sf** and **spdep**
+
+-   Attribute data handling
+
+    -   **tidyverse**
+
+-   Choropleth mapping
+
+    -   **tmap**
+
+-   Multivariate data visualisation and analysis
+
+    -   **corrplot** and **ggpubr**
+
+-   Exploratory Data Analysis
+
+    -   **funModeling**
+    -   skimr
+
+-   Regression Modelling
+
+    -   GWmodel - geographically weighted regression
+
+    -   caret - **C**lassification **A**nd **RE**gression **T**raining
+
+    -   blorr - binary logistic regression model
+
+The following code chunk is used to load the necessary R packages:
+
+```{r}
+pacman::p_load(sf, spdep, tmap, tidyverse, tmap, funModeling, blorr, corrplot, ggpubr, GWmodel, skimr,caret)
+```
+
+### 1.1.3 Data Import
+
+The code chunk below uses read_rds*()* function of **tidyverse** package to import rds files.
+
+Osun is imported into R as a polygon feature data frame.
+
+Osun_wp_sf is imported into R as a point feature data frame
+
+These files have been cleaned and prepared.
+
+The raw data for Osun can be obtained from [WPdx Global Data Repositories](https://www.waterpointdata.org/access-data/). There are two versions of the data. They are: WPdx-Basic and WPdx+. We are required to use WPdx+ data set.
+
+The raw data for Osun_wp_sf is Nigeria Level-2 Administrative Boundary (also known as Local Government Area) polygon features GIS data. The data can be downloaded either from The [Humanitarian Data Exchange](https://data.humdata.org/) portal or [geoBoundaries](https://www.geoboundaries.org/). We are required to use "nga_polnda_adm2_1m_salb" data set.
+
+```{r}
+Osun <- read_rds("rds/Osun.rds")
+Osun_wp_sf <- read_rds("rds/Osun_wp_sf.rds")
+```
+
+### 1.1.4 Quick Exploratory Data Analysis
+
+The following code chunk serves to perform a quick exploratory analysis on status column of Osun_wp_sf data frame. True indicates that the waterpoint is functional and False indicates that the waterpoint is non-functional. We can see that the 2118 waterpoints which is 44.5% of the Osun's waterpoints are non-functional. This is a worrisome situation and we should investigate the reason for such a high percentage.
+
+```{r}
+Osun_wp_sf %>%
+    freq(input = 'status')
+```
+
+The following code chunk produces a choropleth map which indicates the location of functional waterpoints and non-functional waterpoints in the Osun State, Nigeria.
+
+```{r}
+tmap_mode("view")
+tm_shape(Osun) +
+    tm_polygons(alpha = 0.4)+
+    tm_shape(Osun_wp_sf) +
+    tm_dots(col = 'status',
+            alpha = 0.6)+
+    tm_view(set.zoom.limits = c(9,12))
+```
+
+### 1.1.5 Summary Statistics
+
+Summary statistics is obtained using the code chunk below using skimr(). The purpose is to have a quick glance and evaluate how many missing data are there under each field and decide which independent variable(s) to exclude in the initial regression modelling.
+
+Eg. fecal_coliform_value has 4760 n_missing, install_year has 1144 n_missing, rehab_priority has 2654 n_missing, crucialness_score has 798 n_missing, pressure_score has 798 n_missing, rehab_year has 4760 n_missing. These are examples of independent variables which will be excluded in the initial regression model.
+
+```{r}
+Osun_wp_sf %>%
+    skim()
+```
+
+### 1.1.6 Selection of independent Variables
+
+Osun_wp_sf_clean is created through the selection of the fields using the code chunk below. `all_vars(!is.na(.))` removes the 4 n_missing observations for column 'water_point_population' and column 'local_population_1km'. water_point_population and local_population_1km are included in the initial regression model as we deem the impact of 4 n_missing obs out of 4760 obs as negligible. `mutate(usage_capacity = as.factor(usage_capacity))` is to ensure that R treats 'usage_capacity' as a categorical variable instead of a continuous variable.
+
+```{r}
+Osun_wp_sf_clean <- Osun_wp_sf %>%
+    filter_at(vars(status,
+                   distance_to_primary_road,
+                   distance_to_secondary_road,
+                   distance_to_tertiary_road,
+                   distance_to_city,
+                   distance_to_town,
+                   water_point_population,
+                   local_population_1km,
+                   usage_capacity,
+                   is_urban,
+                   water_source_clean),
+              all_vars(!is.na(.))) %>%
+    mutate(usage_capacity = as.factor(usage_capacity))
+```
+
+The code chunk below selects the necessary independent variables as indicated in the code chunk above for the initial regression model and dropping the geometry column so that we can use [*corrplot.mixed()*](https://cran.r-project.org/web/packages/corrplot/corrplot.pdf)
+
+```{r}
+Osun_wp <- Osun_wp_sf_clean %>%
+    select(c(7,35:39,42:43, 46:47,57)) %>% # you can create a list and point this to the list instead for more elegance.
+    st_set_geometry(NULL)
+```
+
+In the code chunk below*, [corrplot.mixed()](https://cran.r-project.org/web/packages/corrplot/corrplot.pdf)* function of [**corrplot**](https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html) package is used visualise and analyse the correlation of the independent variables. The correlation plot below shows that none of the independent variables are highly correlated (\>=0.85). Hence no independent variables will be removed due to Multicollinearity.
+
+```{r}
+cluster_vars.cor = cor(Osun_wp[,(2:7)])
+corrplot.mixed(cluster_vars.cor,
+               lower = 'ellipse',
+               upper = 'number',
+               tl.pos = 'lt',
+               diag = 'l',
+               tl.col = 'black')
+
+```
+
+## 2.1 Building Initial Logistical Regression Model
+
+The following code chunk uses glm() to build our initial logistical regression model.
+
+```{r}
+model <- glm(status ~ distance_to_primary_road +
+                 distance_to_secondary_road +
+                 distance_to_tertiary_road +
+                 distance_to_city +
+                 distance_to_town +
+                 is_urban +
+                 usage_capacity +
+                 water_source_clean +
+                 water_point_population +
+                 local_population_1km,
+             data = Osun_wp_sf_clean,
+             family = binomial(link = 'logit'))
+```
+
+Instead of using typical R report, blr_regress() is used to generate comprehensive regression output. Using this output, we identify independent variables which are not significant (P-values \> 0.05) as we are using 95% confidence level. The identified independent variables are distance_to_primary_road (P-value 0.4744) and distance_to_secondary_road (0.5802).
+
+```{r}
+blr_regress(model)
+```
+
+## 2.2 Building Revised Logistical Regression Model
+
+After identifying the insignificant variables, we should build a revised logistical regression model. This time, we will exclude the identified insignificant variables as found in section 2.1
+
+```{r}
+model_r <- glm(status ~ distance_to_tertiary_road +
+                 distance_to_city +
+                 distance_to_town +
+                 is_urban +
+                 usage_capacity +
+                 water_source_clean +
+                 water_point_population +
+                 local_population_1km,
+             data = Osun_wp_sf_clean,
+             family = binomial(link = 'logit'))
+```
+
+blr_regress() is used again to confirm that the revised logistical regression model does not have insignificant independent variables.
+
+```{r}
+blr_regress(model_r)
+```
+
+### 2.2.1 Non-geography weighted confusion matrix
+
+The code chunk below shows the creation of a non-geography weighted confusion matrix with cutoff = 50%
+
+```{r}
+blr_confusion_matrix(model_r, cutoff = 0.5) # non-geography weighted
+```
+
+### 2.2.2 Conversion from *simple features (sf) to* SpatialPointsDataFrame (sp)
+
+The code chunk below selects the necessary fields and converts it to a SpatialPointsDataFrame file. Please take note of *as_Spatial()*
+
+This is necessary as bw.ggwr requires SpatialPointsDataFrame file as input.
+
+```{r}
+Osun_wp_sp_r <- Osun_wp_sf_clean %>% 
+    select(c(status,
+             distance_to_tertiary_road,
+             distance_to_city,
+             distance_to_town,
+             water_point_population,
+             local_population_1km,
+             is_urban,
+             usage_capacity,
+             water_source_clean)) %>%
+    as_Spatial()
+Osun_wp_sp_r
+```
+
+### 2.2.3 Finding fixed bandwidth
+
+The code chunk below [`bw.ggwr()`](https://www.rdocumentation.org/packages/GWmodel/versions/2.2-9/topics/bw.ggwr) to generate the fixed bandwidth which will be necessary to calibrate a generalized Geographically Weighted Regression (GWR) model.
+
+```{r eval=FALSE}
+bw.fixed_r <- bw.ggwr(status ~
+                        distance_to_tertiary_road +
+                        distance_to_city +
+                        distance_to_town +
+                        water_point_population +
+                        local_population_1km +
+                        usage_capacity +
+                        is_urban +
+                        water_source_clean,
+                    data = Osun_wp_sp_r,
+                    family = "binomial",
+                    approach = "AIC",
+                    kernel = "gaussian",
+                    adaptive = FALSE,
+                    longlat = FALSE)
+```
+
+The code chunk below reads the generated fixed bandwidth.
+
+```{r eval=FALSE}
+bw.fixed_r
+```
+
+```{r}
+bw.fixed_r <- 2377.371 # in the essence of time (long duration required for rendering, value of bw.fixed_r is found and indicated here.)
+```
+
+### 2.2.4 Implement Generalized Geographically Weighted Regression (GWR)
+
+The code chunk below uses [`ggwr.basic()`](https://www.rdocumentation.org/packages/GWmodel/versions/2.2-9/topics/ggwr.basic) to implement generalized GWR. Notice that bw.fixed_r is included as input *(bw = bw.fixed_r)* into the function.
+
+```{r}
+gwlr.fixed_r <- ggwr.basic(status ~
+                  distance_to_tertiary_road +
+                        distance_to_city +
+                        distance_to_town +
+                        water_point_population +
+                        local_population_1km +
+                        usage_capacity +
+                        is_urban +
+                        water_source_clean,
+                    data = Osun_wp_sp_r,
+                    bw = bw.fixed_r,
+                    family = "binomial",
+                    kernel = "gaussian",
+                    adaptive = FALSE,
+                    longlat = FALSE)
+```
+
+The code chunk below reads the generated fixed bandwidth. The AICc are as follows:
+
+-   Generalized linear Regression's AICc: 5708.923
+
+-   Geographically Weighted Regression's AICc : 4744.213
+
+Hence we are determine that the Geographically Weighted Regression is better as lower AICc is preferred.
+
+```{r}
+gwlr.fixed_r #top is GLM, bottom is geographical version #AICc 
+```
+
+The code chunk below converts gwlr.fixed_r into a data frame and assign to gwr.fixed_r. This includes the independent variables which has undergone standardization.
+
+```{r}
+gwr.fixed_r <- as.data.frame(gwlr.fixed_r$SDF)
+```
+
+The code chunk below converts yhat data where \>=0.5 is T and otherwise is F and assign data to 'most' field.
+
+```{r}
+gwr.fixed_r <- gwr.fixed_r %>%
+    mutate(most = ifelse(
+        gwr.fixed_r$yhat >= 0.5, T, F))
+```
+
+The code chunk below changes the field 'y' and 'most' to categorical data.
+
+```{r}
+gwr.fixed_r$y <- as.factor(gwr.fixed_r$y)
+gwr.fixed_r$most <- as.factor(gwr.fixed_r$most)
+```
+
+### 2.2.4 Geographically Weighted Confusion Matrix
+
+```{r}
+CM_r <- confusionMatrix(data = gwr.fixed_r$most, reference = gwr.fixed_r$y)
+CM_r# geography weighted
+
+# need to have a localized strategy to identify specific reason for the waterpoint turned non-functional
+```
+
+Accuracy : 0.8837
+
+Sensitivity (probability of true positive) : 0.8628
+
+Specificity (probability of true negative): 0.9005
+
+```{r}
+Osun_wp_sf_selected <- Osun_wp_sf_clean %>%
+    select(c(ADM2_EN, ADM2_PCODE,
+             ADM1_EN, ADM1_PCODE,
+             status))
+```
+
+```{r}
+gwr_sf.fixed_r <- cbind(Osun_wp_sf_selected, gwr.fixed_r)
+```
+
+### 2.2.5 Choropleth Mapping of Model Probability
+
+The code chunk below indicates the location of waterpoints with the probability of it being functional (dark-colored) or non-functional (light-colored).
+
+```{r}
+tmap_mode("view")
+prob_T <- tm_shape(Osun) +
+    tm_polygons(alpha = 0.1) +
+    tm_shape(gwr_sf.fixed_r) +
+    tm_dots(col = 'yhat',
+            border.col = 'gray60',
+            border.lwd = 1) +
+    tm_view(set.zoom.limits = c(8,14))
+prob_T
+```
